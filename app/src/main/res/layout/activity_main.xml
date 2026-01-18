@@ -1,19 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="20dp"
+    android:background="?attr/android:colorBackground">
 
+    <!-- Заголовок -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="Часы"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="?attr/android:colorBackground"
+        android:layout_marginBottom="30dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Цифровые часы -->
+    <TextClock
+        android:id="@+id/digital_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="64sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:format12Hour="hh:mm: ss a"
+        android:format24Hour="HH:mm:ss"
+        android:layout_marginBottom="40dp" />
+
+    <!-- Выбор часового пояса -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Часовой пояс:"
+        android:textSize="16sp"
+        android:textColor="?attr/android:colorBackground"
+        android:layout_marginBottom="10dp" />
+
+    <Spinner
+        android:id="@+id/spinner_timezone"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:entries="@array/timezones"
+        android:layout_marginBottom="30dp" />
+
+    <!-- Кнопка переключения темы -->
+    <Button
+        android:id="@+id/btn_theme"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Переключить тему"
+        android:textSize="16sp"
+        android:layout_marginBottom="15dp" />
+
+    <!-- Кнопка будильника -->
+    <Button
+        android:id="@+id/btn_alarm"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="⏰Установить будильник"
+        android:textSize="16sp" />
+
+</LinearLayout>

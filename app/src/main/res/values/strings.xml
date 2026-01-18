@@ -1,3 +1,16 @@
+
 <resources>
-    <string name="app_name">clock 2</string>
+    <string name="app_name">Clock App</string>
+
+    <string-array name="timezones">
+        <item>UTC</item>
+        <item>Europe/Moscow</item>
+        <item>Europe/London</item>
+        <item>Europe/Paris</item>
+        <item>America/New_York</item>
+        <item>America/Los_Angeles</item>
+        <item>Asia/Tokyo</item>
+        <item>Asia/Shanghai</item>
+        <item>Australia/Sydney</item>
+    </string-array>
 </resources>
