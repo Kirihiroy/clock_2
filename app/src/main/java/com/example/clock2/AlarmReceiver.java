@@ -1,13 +1,13 @@
 package com.example.clock2;
 
 import android.content.BroadcastReceiver;
-import android.content. Context;
-import android.content. Intent;
+import android.content.Context;
+import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
-import android.media. Ringtone;
+import android.media.Ringtone;
 import android.net.Uri;
-import android. widget.Toast;
+import android.widget.Toast;
 
 public class AlarmReceiver extends BroadcastReceiver {
 

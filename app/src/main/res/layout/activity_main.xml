@@ -14,7 +14,7 @@
         android:text="Часы"
         android:textSize="32sp"
         android:textStyle="bold"
-        android:textColor="?attr/android:colorBackground"
+        android:textColor="?android:attr/textColorPrimary"
         android:layout_marginBottom="30dp" />
 
     <!-- Цифровые часы -->
@@ -35,7 +35,7 @@
         android:layout_height="wrap_content"
         android:text="Часовой пояс:"
         android:textSize="16sp"
-        android:textColor="?attr/android:colorBackground"
+        android:textColor="?android:attr/textColorPrimary"
         android:layout_marginBottom="10dp" />
 
     <Spinner

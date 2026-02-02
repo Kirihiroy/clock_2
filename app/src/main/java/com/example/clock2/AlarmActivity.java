@@ -4,21 +4,19 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TimePicker;
 import android.widget.Toast;
-import androidx.appcompat.app. AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
 import android.media.RingtoneManager;
-import java.util. Calendar;
+import java.util.Calendar;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +27,6 @@ public class AlarmActivity extends AppCompatActivity {
     private Spinner alarmToneSpinner;
     private AlarmManager alarmManager;
     private final List<String> alarmToneUris = new ArrayList<>();
-    private static final int PERMISSION_REQUEST_CODE = 100;
     private static final String PREFS_NAME = "alarm_prefs";
     private static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
 
@@ -93,32 +90,18 @@ public class AlarmActivity extends AppCompatActivity {
     }
 
     private void checkPermissionAndSetAlarm() {
-        // Для Android 12 и выше требуется разрешение
+        // Для Android 12 и выше нужно включить доступ "Будильники и напоминания"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SCHEDULE_EXACT_ALARM)
-                    != PackageManager.PERMISSION_GRANTED) {
-                // Запрашиваем разрешение
-                ActivityCompat.requestPermissions(this,
-                        new String[]{android.Manifest.permission.SCHEDULE_EXACT_ALARM},
-                        PERMISSION_REQUEST_CODE);
-            } else {
+            if (alarmManager != null && alarmManager.canScheduleExactAlarms()) {
                 setAlarm();
+                return;
             }
-        } else {
-            setAlarm();
+            Toast.makeText(this, "Включите доступ «Будильники и напоминания»", Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+            startActivity(intent);
+            return;
         }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setAlarm();
-            } else {
-                Toast.makeText(this, "Разрешение на установку будильника отклонено", Toast.LENGTH_SHORT).show();
-            }
-        }
+        setAlarm();
     }
 
     private void setAlarm() {
@@ -126,9 +109,9 @@ public class AlarmActivity extends AppCompatActivity {
         int minute = timePicker.getMinute();
 
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar. HOUR_OF_DAY, hour);
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
         calendar.set(Calendar.MINUTE, minute);
-        calendar.set(Calendar. SECOND, 0);
+        calendar.set(Calendar.SECOND, 0);
 
         // Если время уже прошло, устанавливаем на следующий день
         if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
@@ -140,7 +123,7 @@ public class AlarmActivity extends AppCompatActivity {
         intent.putExtra(KEY_ALARM_TONE_URI, selectedToneUri);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent. FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
