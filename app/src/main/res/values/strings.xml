@@ -1,6 +1,29 @@
-
 <resources>
     <string name="app_name">Clock App</string>
+    <string name="clock_title">Часы</string>
+    <string name="open_alarm_screen">⏰ Экран будильника</string>
+    <string name="open_settings_screen">⚙️ Экран настроек</string>
+
+    <string name="settings_title">Настройки устройства</string>
+    <string name="timezone_label">Часовой пояс</string>
+    <string name="dark_theme_label">Тёмная тема (подсветка)</string>
+    <string name="save_settings">Сохранить</string>
+
+    <string name="alarm_setup_title">Установить будильник</string>
+    <string name="alarm_tone_label">Мелодия будильника</string>
+    <string name="set_alarm_button">Установить</string>
+    <string name="default_alarm_tone">Системная мелодия</string>
+    <string name="request_exact_alarm_permission">Включите доступ «Будильники и напоминания»</string>
+    <string name="alarm_set_message">Будильник установлен на %1$d:%2$02d</string>
+
+    <string name="alarm_ringing_title">⏰ Будильник</string>
+    <string name="alarm_math_hint">Решите пример, чтобы выключить звук:</string>
+    <string name="math_example_format">%1$d + %2$d = ?</string>
+    <string name="answer_hint">Ваш ответ</string>
+    <string name="dismiss_alarm_button">Выключить будильник</string>
+    <string name="enter_answer">Введите ответ</string>
+    <string name="invalid_answer">Введите число</string>
+    <string name="wrong_answer">Неверно, попробуйте ещё раз</string>
 
     <string-array name="timezones">
         <item>UTC</item>

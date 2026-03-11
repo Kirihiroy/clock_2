@@ -14,6 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Clock2">
         <activity
+            android:name=".AlarmRingActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true" />
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".AlarmActivity"
             android:exported="false" />
         <activity
