@@ -7,6 +7,7 @@
     <string name="settings_title">Настройки устройства</string>
     <string name="timezone_label">Часовой пояс</string>
     <string name="dark_theme_label">Тёмная тема (подсветка)</string>
+    <string name="alarm_tone_settings_label">Мелодия будильника по умолчанию</string>
     <string name="save_settings">Сохранить</string>
 
     <string name="alarm_setup_title">Установить будильник</string>

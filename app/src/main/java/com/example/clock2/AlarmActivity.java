@@ -4,17 +4,12 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.LayoutInflater;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -40,12 +35,10 @@ public class AlarmActivity extends AppCompatActivity {
     private static final String KEY_ALARMS_JSON = "alarms_json";
 
     private TimePicker timePicker;
-    private Spinner alarmToneSpinner;
     private AlarmManager alarmManager;
     private TextView alarmStatusText;
     private LinearLayout alarmListLayout;
 
-    private final List<String> alarmToneUris = new ArrayList<>();
     private final List<AlarmItem> alarms = new ArrayList<>();
 
     @Override
@@ -55,60 +48,14 @@ public class AlarmActivity extends AppCompatActivity {
 
         timePicker = findViewById(R.id.time_picker);
         Button setAlarmButton = findViewById(R.id.btn_set_alarm);
-        alarmToneSpinner = findViewById(R.id.spinner_alarm_tone);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
         alarmListLayout = findViewById(R.id.layout_alarm_list);
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
-        setupAlarmToneSpinner();
         loadAlarms();
         renderAlarmCards();
 
         setAlarmButton.setOnClickListener(v -> checkPermissionAndRun(this::addNewAlarm));
-    }
-
-    private void setupAlarmToneSpinner() {
-        List<String> alarmToneTitles = new ArrayList<>();
-        RingtoneManager ringtoneManager = new RingtoneManager(this);
-        ringtoneManager.setType(RingtoneManager.TYPE_ALARM);
-        Cursor cursor = ringtoneManager.getCursor();
-
-        try {
-            if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    int position = cursor.getPosition();
-                    Uri uri = ringtoneManager.getRingtoneUri(position);
-                    if (uri != null) {
-                        alarmToneUris.add(uri.toString());
-                        alarmToneTitles.add(ringtoneManager.getRingtone(position).getTitle(this));
-                    }
-                } while (cursor.moveToNext());
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-
-        if (alarmToneTitles.isEmpty()) {
-            alarmToneTitles.add(getString(R.string.default_alarm_tone));
-            alarmToneUris.add("");
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                alarmToneTitles
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        alarmToneSpinner.setAdapter(adapter);
-
-        String savedUri = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getString(KEY_ALARM_TONE_URI, "");
-        int selectedIndex = alarmToneUris.indexOf(savedUri);
-        if (selectedIndex >= 0) {
-            alarmToneSpinner.setSelection(selectedIndex);
-        }
     }
 
     private void checkPermissionAndRun(Runnable action) {
@@ -125,7 +72,8 @@ public class AlarmActivity extends AppCompatActivity {
     private void addNewAlarm() {
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
-        String selectedToneUri = alarmToneUris.get(alarmToneSpinner.getSelectedItemPosition());
+        String selectedToneUri = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getString(KEY_ALARM_TONE_URI, "");
 
         AlarmItem item = new AlarmItem();
         item.id = (int) System.currentTimeMillis();
@@ -135,11 +83,6 @@ public class AlarmActivity extends AppCompatActivity {
         item.enabled = true;
 
         alarms.add(0, item);
-
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .edit()
-                .putString(KEY_ALARM_TONE_URI, selectedToneUri)
-                .apply();
 
         scheduleAlarm(item);
         saveAlarms();

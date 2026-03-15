@@ -30,20 +30,7 @@
         android:id="@+id/time_picker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:timePickerMode="spinner" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/alarm_tone_label"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp" />
-
-    <Spinner
-        android:id="@+id/spinner_alarm_tone"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:timePickerMode="spinner"
         android:layout_marginBottom="12dp" />
 
     <Button
