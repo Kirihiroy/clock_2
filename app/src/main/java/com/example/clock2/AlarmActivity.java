@@ -2,21 +2,23 @@ package com.example.clock2;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import org.json.JSONArray;
@@ -34,7 +36,6 @@ public class AlarmActivity extends AppCompatActivity {
     public static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
     private static final String KEY_ALARMS_JSON = "alarms_json";
 
-    private TimePicker timePicker;
     private AlarmManager alarmManager;
     private TextView alarmStatusText;
     private LinearLayout alarmListLayout;
@@ -46,8 +47,7 @@ public class AlarmActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm);
 
-        timePicker = findViewById(R.id.time_picker);
-        Button setAlarmButton = findViewById(R.id.btn_set_alarm);
+        FloatingActionButton addAlarmButton = findViewById(R.id.fab_add_alarm);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
         alarmListLayout = findViewById(R.id.layout_alarm_list);
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
@@ -55,7 +55,23 @@ public class AlarmActivity extends AppCompatActivity {
         loadAlarms();
         renderAlarmCards();
 
-        setAlarmButton.setOnClickListener(v -> checkPermissionAndRun(this::addNewAlarm));
+        addAlarmButton.setOnClickListener(v -> showTimePickerDialog());
+    }
+
+    private void showTimePickerDialog() {
+        Calendar now = Calendar.getInstance();
+        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+        int currentMinute = now.get(Calendar.MINUTE);
+
+        TimePickerDialog dialog = new TimePickerDialog(
+                this,
+                (view, hourOfDay, minute) -> checkPermissionAndRun(() -> addNewAlarm(hourOfDay, minute)),
+                currentHour,
+                currentMinute,
+                DateFormat.is24HourFormat(this)
+        );
+        dialog.setTitle(R.string.choose_alarm_time);
+        dialog.show();
     }
 
     private void checkPermissionAndRun(Runnable action) {
@@ -69,9 +85,7 @@ public class AlarmActivity extends AppCompatActivity {
         action.run();
     }
 
-    private void addNewAlarm() {
-        int hour = timePicker.getHour();
-        int minute = timePicker.getMinute();
+    private void addNewAlarm(int hour, int minute) {
         String selectedToneUri = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getString(KEY_ALARM_TONE_URI, "");
 
@@ -89,6 +103,17 @@ public class AlarmActivity extends AppCompatActivity {
         renderAlarmCards();
 
         Toast.makeText(this, getString(R.string.alarm_set_message, hour, minute), Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteAlarm(AlarmItem item) {
+        cancelAlarm(item);
+        alarms.remove(item);
+        saveAlarms();
+        renderAlarmCards();
+
+        Toast.makeText(this,
+                getString(R.string.alarm_deleted_message, formatTime(item.hour, item.minute)),
+                Toast.LENGTH_SHORT).show();
     }
 
     private void scheduleAlarm(AlarmItem item) {
@@ -157,6 +182,7 @@ public class AlarmActivity extends AppCompatActivity {
             TextView timeText = card.findViewById(R.id.tv_alarm_time);
             TextView stateText = card.findViewById(R.id.tv_alarm_state);
             SwitchMaterial alarmSwitch = card.findViewById(R.id.switch_alarm);
+            ImageButton deleteButton = card.findViewById(R.id.btn_delete_alarm);
 
             String time = String.format(Locale.getDefault(), "%02d:%02d", item.hour, item.minute);
             timeText.setText(time);
@@ -166,6 +192,7 @@ public class AlarmActivity extends AppCompatActivity {
 
             card.setOnClickListener(v -> toggleAlarm(item, card, timeText, stateText, alarmSwitch));
             alarmSwitch.setOnClickListener(v -> toggleAlarm(item, card, timeText, stateText, alarmSwitch));
+            deleteButton.setOnClickListener(v -> deleteAlarm(item));
 
             alarmListLayout.addView(card);
         }

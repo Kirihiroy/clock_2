@@ -11,8 +11,6 @@
     <string name="save_settings">Сохранить</string>
 
     <string name="alarm_setup_title">Установить будильник</string>
-    <string name="alarm_tone_label">Мелодия будильника</string>
-    <string name="set_alarm_button">Установить</string>
     <string name="default_alarm_tone">Системная мелодия</string>
     <string name="request_exact_alarm_permission">Включите доступ «Будильники и напоминания»</string>
     <string name="alarm_set_message">Будильник установлен на %1$d:%2$02d</string>
@@ -23,6 +21,10 @@
     <string name="no_alarms_added">Пока нет будильников. Добавьте первый выше.</string>
     <string name="alarm_disabled_message">Будильник %1$s выключен</string>
     <string name="alarm_enabled_message">Будильник %1$s включен</string>
+    <string name="add_alarm">Добавить будильник</string>
+    <string name="delete_alarm">Удалить будильник</string>
+    <string name="choose_alarm_time">Выберите время</string>
+    <string name="alarm_deleted_message">Будильник %1$s удален</string>
 
     <string name="alarm_ringing_title">⏰ Будильник</string>
     <string name="alarm_math_hint">Решите пример, чтобы выключить звук:</string>
