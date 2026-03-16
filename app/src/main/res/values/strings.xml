@@ -7,14 +7,40 @@
     <string name="settings_title">Настройки устройства</string>
     <string name="timezone_label">Часовой пояс</string>
     <string name="dark_theme_label">Тёмная тема (подсветка)</string>
+    <string name="alarm_tone_settings_label">Мелодия будильника по умолчанию</string>
     <string name="save_settings">Сохранить</string>
 
     <string name="alarm_setup_title">Установить будильник</string>
-    <string name="alarm_tone_label">Мелодия будильника</string>
-    <string name="set_alarm_button">Установить</string>
     <string name="default_alarm_tone">Системная мелодия</string>
     <string name="request_exact_alarm_permission">Включите доступ «Будильники и напоминания»</string>
     <string name="alarm_set_message">Будильник установлен на %1$d:%2$02d</string>
+    <string name="alarm_enabled">Активен</string>
+    <string name="alarm_disabled">Выключен (нажмите, чтобы включить)</string>
+    <string name="active_alarms_count">Активных будильников: %1$d</string>
+    <string name="no_active_alarms">Все будильники выключены</string>
+    <string name="no_alarms_added">Пока нет будильников. Добавьте первый выше.</string>
+    <string name="alarm_disabled_message">Будильник %1$s выключен</string>
+    <string name="alarm_enabled_message">Будильник %1$s включен</string>
+    <string name="add_alarm">Добавить будильник</string>
+    <string name="delete_alarm">Удалить будильник</string>
+    <string name="choose_alarm_time">Выберите время</string>
+    <string name="cancel">Отмена</string>
+    <string name="done">Готово</string>
+    <string name="new_alarm">Новый сигнал</string>
+    <string name="ring_tomorrow_hint">Звонок через 1 день</string>
+    <string name="alarm_deleted_message">Будильник %1$s удален</string>
+
+    <string name="add_world_time">Добавить город</string>
+    <string name="all_world_times_added">Все доступные города уже добавлены</string>
+    <string name="home_clock_label">%1$s, %2$s</string>
+    <string name="today_offset_format">Сегодня, %1$s</string>
+    <string name="same_time_offset">без разницы</string>
+    <string name="offset_plus_hours">+%1$d час</string>
+    <string name="offset_minus_hours">-%1$d часов</string>
+    <string name="add_world_time_short">Добавить</string>
+    <string name="nav_alarm">Будильник</string>
+    <string name="nav_world_time">Мировое время</string>
+    <string name="nav_settings">Настройки</string>
 
     <string name="alarm_ringing_title">⏰ Будильник</string>
     <string name="alarm_math_hint">Решите пример, чтобы выключить звук:</string>
