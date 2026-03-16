@@ -6,4 +6,12 @@
     <color name="background_dark">#121212</color>
     <color name="text_light">#000000</color>
     <color name="text_dark">#FFFFFF</color>
+
+    <color name="main_screen_bg">#F3F3F3</color>
+    <color name="main_card_bg">#FFFFFF</color>
+    <color name="main_bottom_nav_bg">#FFFFFF</color>
+    <color name="main_secondary_text">#6E6E6E</color>
+    <color name="main_nav_inactive">#8C8C8C</color>
+    <color name="main_time_color">#111111</color>
+    <color name="main_fab_blue">#1E7BFF</color>
 </resources>

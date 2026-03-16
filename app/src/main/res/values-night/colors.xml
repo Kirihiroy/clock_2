@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="main_screen_bg">#111111</color>
+    <color name="main_card_bg">#313131</color>
+    <color name="main_bottom_nav_bg">#181818</color>
+    <color name="main_secondary_text">#9A9A9A</color>
+    <color name="main_nav_inactive">#BDBDBD</color>
+    <color name="main_time_color">#FFFFFF</color>
+    <color name="main_fab_blue">#1E7BFF</color>
+</resources>
