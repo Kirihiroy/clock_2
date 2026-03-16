@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/android:colorBackground">
+    android:background="@color/main_screen_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,21 +15,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/alarm_setup_title"
+            android:textColor="@color/main_time_color"
             android:textSize="30sp"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginTop="8dp" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_alarm_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/no_active_alarms"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorSecondary"
             android:layout_marginTop="6dp"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:text="@string/no_active_alarms"
+            android:textColor="@color/main_secondary_text"
+            android:textSize="16sp" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -50,10 +50,93 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="62dp"
         android:contentDescription="@string/add_alarm"
         android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="@android:color/holo_blue_light"
+        app:backgroundTint="@color/main_fab_blue"
         app:tint="@android:color/white" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom"
+        android:background="@color/main_bottom_nav_bg"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <LinearLayout
+            android:id="@+id/nav_alarm"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="6dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@android:drawable/ic_lock_idle_alarm"
+                app:tint="@color/main_fab_blue" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/nav_alarm"
+                android:textColor="@color/main_fab_blue"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_world_time"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="6dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@android:drawable/ic_menu_compass"
+                app:tint="@color/main_nav_inactive" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/nav_world_time"
+                android:textColor="@color/main_nav_inactive"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="6dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@android:drawable/ic_menu_manage"
+                app:tint="@color/main_nav_inactive" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/nav_settings"
+                android:textColor="@color/main_nav_inactive"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </FrameLayout>

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#111111">
+    android:background="@color/main_screen_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="36dp"
             android:text="21:24:04"
-            android:textColor="@android:color/white"
+            android:textColor="@color/main_time_color"
             android:textSize="56sp"
             android:textStyle="bold" />
 
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="8dp"
-            android:textColor="#9A9A9A"
+            android:textColor="@color/main_secondary_text"
             android:textSize="18sp" />
 
         <ScrollView
@@ -54,14 +54,14 @@
         android:layout_marginBottom="62dp"
         android:contentDescription="@string/add_world_time"
         android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="#1E7BFF"
+        app:backgroundTint="@color/main_fab_blue"
         app:tint="@android:color/white" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:layout_gravity="bottom"
-        android:background="#181818"
+        android:background="@color/main_bottom_nav_bg"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp">
 
@@ -78,14 +78,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_lock_idle_alarm"
-                app:tint="#BDBDBD" />
+                app:tint="@color/main_nav_inactive" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@string/nav_alarm"
-                android:textColor="#BDBDBD"
+                android:textColor="@color/main_nav_inactive"
                 android:textSize="13sp" />
         </LinearLayout>
 
@@ -102,14 +102,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_compass"
-                app:tint="@android:color/white" />
+                app:tint="@color/main_fab_blue" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@string/nav_world_time"
-                android:textColor="@android:color/white"
+                android:textColor="@color/main_fab_blue"
                 android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -127,14 +127,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_manage"
-                app:tint="#BDBDBD" />
+                app:tint="@color/main_nav_inactive" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@string/nav_settings"
-                android:textColor="#BDBDBD"
+                android:textColor="@color/main_nav_inactive"
                 android:textSize="13sp" />
         </LinearLayout>
 

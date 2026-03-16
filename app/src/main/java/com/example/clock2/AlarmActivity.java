@@ -57,10 +57,15 @@ public class AlarmActivity extends AppCompatActivity {
         alarmListLayout = findViewById(R.id.layout_alarm_list);
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
+        View worldTimeNav = findViewById(R.id.nav_world_time);
+        View settingsNav = findViewById(R.id.nav_settings);
+
         loadAlarms();
         renderAlarmCards();
 
         addAlarmButton.setOnClickListener(v -> showAddAlarmDialog());
+        worldTimeNav.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
+        settingsNav.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
     }
 
     private void showAddAlarmDialog() {

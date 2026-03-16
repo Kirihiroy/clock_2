@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="#313131"
+    app:cardBackgroundColor="@color/main_card_bg"
     app:cardCornerRadius="18dp"
     app:cardElevation="0dp">
 
@@ -27,7 +27,7 @@
                 android:id="@+id/tv_city_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/white"
+                android:textColor="@color/main_time_color"
                 android:textSize="17sp" />
 
             <TextView
@@ -35,7 +35,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="#ABABAB"
+                android:textColor="@color/main_secondary_text"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -43,7 +43,7 @@
             android:id="@+id/tv_city_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/white"
+            android:textColor="@color/main_time_color"
             android:textSize="22sp"
             android:textStyle="bold" />
 

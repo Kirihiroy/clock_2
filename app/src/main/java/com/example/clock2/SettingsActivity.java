@@ -1,5 +1,6 @@
 package com.example.clock2;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.RingtoneManager;
@@ -39,6 +40,9 @@ public class SettingsActivity extends AppCompatActivity {
         alarmToneSpinner = findViewById(R.id.spinner_alarm_tone_settings);
         themeSwitch = findViewById(R.id.switch_theme);
         Button saveButton = findViewById(R.id.btn_save_settings);
+
+        findViewById(R.id.nav_alarm).setOnClickListener(v -> startActivity(new Intent(this, AlarmActivity.class)));
+        findViewById(R.id.nav_world_time).setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
 
         setupAlarmToneSpinner();
         restoreSettings();
