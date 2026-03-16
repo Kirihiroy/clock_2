@@ -5,19 +5,25 @@ import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
@@ -55,22 +61,36 @@ public class AlarmActivity extends AppCompatActivity {
         loadAlarms();
         renderAlarmCards();
 
-        addAlarmButton.setOnClickListener(v -> showTimePickerDialog());
+        addAlarmButton.setOnClickListener(v -> showAddAlarmDialog());
     }
 
-    private void showTimePickerDialog() {
-        Calendar now = Calendar.getInstance();
-        int currentHour = now.get(Calendar.HOUR_OF_DAY);
-        int currentMinute = now.get(Calendar.MINUTE);
+    private void showAddAlarmDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_alarm, null, false);
+        TextView cancelButton = dialogView.findViewById(R.id.tv_cancel_add_alarm);
+        TextView doneButton = dialogView.findViewById(R.id.tv_done_add_alarm);
+        TimePicker timePicker = dialogView.findViewById(R.id.tp_add_alarm);
 
-        TimePickerDialog dialog = new TimePickerDialog(
-                this,
-                (view, hourOfDay, minute) -> checkPermissionAndRun(() -> addNewAlarm(hourOfDay, minute)),
-                currentHour,
-                currentMinute,
-                DateFormat.is24HourFormat(this)
-        );
-        dialog.setTitle(R.string.choose_alarm_time);
+        Calendar now = Calendar.getInstance();
+        timePicker.setIs24HourView(DateFormat.is24HourFormat(this));
+        timePicker.setHour(now.get(Calendar.HOUR_OF_DAY));
+        timePicker.setMinute(now.get(Calendar.MINUTE));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        doneButton.setOnClickListener(v -> {
+            int hour = timePicker.getHour();
+            int minute = timePicker.getMinute();
+            checkPermissionAndRun(() -> addNewAlarm(hour, minute));
+            dialog.dismiss();
+        });
+
         dialog.show();
     }
 
