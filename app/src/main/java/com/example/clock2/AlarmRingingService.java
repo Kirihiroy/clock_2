@@ -32,7 +32,11 @@ public class AlarmRingingService extends Service {
         intent.setAction(ACTION_START);
         intent.putExtra(AlarmActivity.KEY_ALARM_ID, alarmId);
         intent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
-        context.startForegroundService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     public static void stop(Context context) {
@@ -160,4 +164,3 @@ public class AlarmRingingService extends Service {
         stopSelf();
     }
 }
-

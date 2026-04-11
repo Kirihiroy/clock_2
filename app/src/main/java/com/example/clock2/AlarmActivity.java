@@ -1,9 +1,11 @@
 package com.example.clock2;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
@@ -19,6 +21,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -40,6 +44,7 @@ public class AlarmActivity extends AppCompatActivity {
     public static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
     public static final String KEY_ALARM_ID = "alarm_id";
     private static final String KEY_ALARMS_JSON = "alarms_json";
+    private static final int REQ_POST_NOTIFICATIONS = 1108;
 
     private AlarmManager alarmManager;
     private TextView alarmStatusText;
@@ -51,6 +56,8 @@ public class AlarmActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm);
+
+        ensureNotificationPermission();
 
         FloatingActionButton addAlarmButton = findViewById(R.id.fab_add_alarm);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
@@ -66,6 +73,21 @@ public class AlarmActivity extends AppCompatActivity {
         addAlarmButton.setOnClickListener(v -> showAddAlarmDialog());
         worldTimeNav.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
         settingsNav.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+    }
+
+    private void ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                REQ_POST_NOTIFICATIONS
+        );
     }
 
     private void showAddAlarmDialog() {
