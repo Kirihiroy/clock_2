@@ -2,7 +2,6 @@ package com.example.clock2;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -39,6 +38,7 @@ public class AlarmActivity extends AppCompatActivity {
 
     public static final String PREFS_NAME = "alarm_prefs";
     public static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
+    public static final String KEY_ALARM_ID = "alarm_id";
     private static final String KEY_ALARMS_JSON = "alarms_json";
 
     private AlarmManager alarmManager;
@@ -165,6 +165,7 @@ public class AlarmActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, AlarmReceiver.class);
         intent.putExtra(KEY_ALARM_TONE_URI, item.toneUri);
+        intent.putExtra(KEY_ALARM_ID, item.id);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this,

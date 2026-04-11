@@ -1,35 +1,41 @@
 package com.example.clock2;
 
-import android.media.AudioAttributes;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Random;
 
 public class AlarmRingActivity extends AppCompatActivity {
 
+    private final Random random = new Random();
     private int correctAnswer;
-    private Ringtone ringtone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm_ring);
+        prepareWakeUpScreen();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // Блокируем обход задания через системную кнопку Back.
+            }
+        });
 
         TextView exampleText = findViewById(R.id.tv_math_example);
         EditText answerInput = findViewById(R.id.et_answer);
         Button dismissButton = findViewById(R.id.btn_dismiss_alarm);
 
         generateMathExample(exampleText);
-        startAlarmSound();
 
         dismissButton.setOnClickListener(v -> {
             String answer = answerInput.getText().toString().trim();
@@ -47,8 +53,8 @@ public class AlarmRingActivity extends AppCompatActivity {
             }
 
             if (userAnswer == correctAnswer) {
-                stopAlarmSound();
-                finish();
+                AlarmRingingService.stop(this);
+                finishAndRemoveTask();
             } else {
                 Toast.makeText(this, R.string.wrong_answer, Toast.LENGTH_SHORT).show();
                 answerInput.setText("");
@@ -57,43 +63,45 @@ public class AlarmRingActivity extends AppCompatActivity {
         });
     }
 
+    private void prepareWakeUpScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        } else {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                    | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                    | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
     private void generateMathExample(TextView view) {
-        Random random = new Random();
-        int a = 10 + random.nextInt(90);
-        int b = 10 + random.nextInt(90);
-        correctAnswer = a + b;
-        view.setText(getString(R.string.math_example_format, a, b));
-    }
+        int operation = random.nextInt(3);
+        int a;
+        int b;
+        String expression;
 
-    private void startAlarmSound() {
-        String uriString = getIntent().getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI);
-        Uri alarmUri = uriString == null || uriString.isEmpty()
-                ? RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                : Uri.parse(uriString);
-
-        if (alarmUri == null) {
-            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        if (operation == 0) {
+            a = 10 + random.nextInt(90);
+            b = 10 + random.nextInt(90);
+            correctAnswer = a + b;
+            expression = a + " + " + b + " = ?";
+        } else if (operation == 1) {
+            a = 30 + random.nextInt(70);
+            b = 10 + random.nextInt(30);
+            if (b > a) {
+                int tmp = a;
+                a = b;
+                b = tmp;
+            }
+            correctAnswer = a - b;
+            expression = a + " - " + b + " = ?";
+        } else {
+            a = 2 + random.nextInt(8);
+            b = 2 + random.nextInt(8);
+            correctAnswer = a * b;
+            expression = a + " × " + b + " = ?";
         }
 
-        ringtone = RingtoneManager.getRingtone(this, alarmUri);
-        if (ringtone != null) {
-            ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build());
-            ringtone.play();
-        }
-    }
-
-    private void stopAlarmSound() {
-        if (ringtone != null && ringtone.isPlaying()) {
-            ringtone.stop();
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        stopAlarmSound();
-        super.onDestroy();
+        view.setText(expression);
     }
 }

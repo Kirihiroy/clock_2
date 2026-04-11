@@ -50,6 +50,10 @@
     <string name="enter_answer">Введите ответ</string>
     <string name="invalid_answer">Введите число</string>
     <string name="wrong_answer">Неверно, попробуйте ещё раз</string>
+    <string name="alarm_notification_title">Будильник звонит</string>
+    <string name="alarm_notification_text">Откройте экран, чтобы решить пример и выключить звук</string>
+    <string name="alarm_channel_name">Будильник</string>
+    <string name="alarm_channel_description">Звонки активных будильников</string>
 
     <string-array name="timezones">
         <item>UTC</item>

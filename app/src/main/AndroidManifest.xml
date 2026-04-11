@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
         android:allowBackup="true"
@@ -13,11 +15,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Clock2">
+
         <activity
             android:name=".AlarmRingActivity"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <service
+            android:name=".AlarmRingingService"
             android:exported="false"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true" />
+            android:foregroundServiceType="mediaPlayback" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />
