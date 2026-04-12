@@ -58,6 +58,7 @@
     <string-array name="timezones">
         <item>UTC</item>
         <item>Europe/Moscow</item>
+        <item>Asia/Novosibirsk</item>
         <item>Europe/London</item>
         <item>Europe/Paris</item>
         <item>America/New_York</item>
