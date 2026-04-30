@@ -37,6 +37,19 @@
     <string name="same_time_offset">без разницы</string>
     <string name="offset_plus_hours">+%1$d час</string>
     <string name="offset_minus_hours">-%1$d часов</string>
+    <string name="offset_plus_hours_minutes">+%1$d ч %2$d мин</string>
+    <string name="offset_minus_hours_minutes">-%1$d ч %2$d мин</string>
+
+    <string name="battery_opt_message">Для надёжной работы будильников отключите оптимизацию батареи для этого приложения</string>
+    <string name="full_screen_intent_message">Для показа будильника поверх экрана блокировки разрешите полноэкранные уведомления</string>
+    <string name="open_settings">Открыть настройки</string>
+
+    <string name="difficulty_label">Сложность задачи</string>
+    <string-array name="difficulty_levels">
+        <item>Лёгкий (ответ ≤ 10)</item>
+        <item>Средний (ответ ≤ 50)</item>
+        <item>Сложный (ответ ≤ 100)</item>
+    </string-array>
     <string name="add_world_time_short">Добавить</string>
     <string name="nav_alarm">Будильник</string>
     <string name="nav_world_time">Мировое время</string>

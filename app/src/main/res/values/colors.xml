@@ -14,4 +14,11 @@
     <color name="main_nav_inactive">#8C8C8C</color>
     <color name="main_time_color">#111111</color>
     <color name="main_fab_blue">#1E7BFF</color>
+
+    <color name="alarm_card_enabled_bg">#2E3F34</color>
+    <color name="alarm_card_disabled_bg">#2F2F2F</color>
+    <color name="alarm_card_enabled_text">#FFFFFF</color>
+    <color name="alarm_card_disabled_text">#9E9E9E</color>
+    <color name="alarm_card_enabled_secondary">#BAE6C7</color>
+    <color name="alarm_card_disabled_secondary">#757575</color>
 </resources>

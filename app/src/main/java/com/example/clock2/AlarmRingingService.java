@@ -7,10 +7,13 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
-import android.media.Ringtone;
+import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
+
+import java.io.IOException;
 import android.os.Build;
 import android.os.IBinder;
 
@@ -25,7 +28,7 @@ public class AlarmRingingService extends Service {
     private static final String CHANNEL_ID = "alarm_ringing_channel";
     private static final int NOTIFICATION_ID = 1107;
 
-    private Ringtone ringtone;
+    private MediaPlayer mediaPlayer;
 
     public static void start(Context context, int alarmId, @Nullable String toneUri) {
         Intent intent = new Intent(context, AlarmRingingService.class);
@@ -56,7 +59,13 @@ public class AlarmRingingService extends Service {
         int alarmId = intent != null ? intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1) : -1;
         String toneUri = intent != null ? intent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI) : null;
 
-        startForeground(NOTIFICATION_ID, createAlarmNotification(alarmId, toneUri));
+        Notification notification = createAlarmNotification(alarmId, toneUri);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
         startAlarmSound(toneUri);
         return START_STICKY;
     }
@@ -88,15 +97,6 @@ public class AlarmRingingService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        Intent dismissIntent = new Intent(this, AlarmRingingService.class);
-        dismissIntent.setAction(ACTION_DISMISS);
-        PendingIntent dismissPendingIntent = PendingIntent.getService(
-                this,
-                3002,
-                dismissIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(getString(R.string.alarm_notification_title))
@@ -108,7 +108,6 @@ public class AlarmRingingService extends Service {
                 .setAutoCancel(false)
                 .setContentIntent(fullScreenPendingIntent)
                 .setFullScreenIntent(fullScreenPendingIntent, true)
-                .addAction(0, getString(R.string.dismiss_alarm_button), dismissPendingIntent)
                 .build();
     }
 
@@ -129,6 +128,7 @@ public class AlarmRingingService extends Service {
         );
         channel.setDescription(getString(R.string.alarm_channel_description));
         channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        channel.setSound(null, null); // звук воспроизводит MediaPlayer, не нотификация
         manager.createNotificationChannel(channel);
     }
 
@@ -141,21 +141,30 @@ public class AlarmRingingService extends Service {
         }
 
         stopAlarmSound();
-        ringtone = RingtoneManager.getRingtone(this, alarmUri);
-        if (ringtone != null) {
-            ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build());
-            ringtone.play();
+        mediaPlayer = new MediaPlayer();
+        mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build());
+        mediaPlayer.setLooping(true);
+        try {
+            mediaPlayer.setDataSource(this, alarmUri);
+            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
+            mediaPlayer.prepareAsync();
+        } catch (IOException e) {
+            mediaPlayer.release();
+            mediaPlayer = null;
         }
     }
 
     private void stopAlarmSound() {
-        if (ringtone != null && ringtone.isPlaying()) {
-            ringtone.stop();
+        if (mediaPlayer != null) {
+            if (mediaPlayer.isPlaying()) {
+                mediaPlayer.stop();
+            }
+            mediaPlayer.release();
+            mediaPlayer = null;
         }
-        ringtone = null;
     }
 
     private void stopSelfSafely() {

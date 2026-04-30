@@ -8,8 +8,8 @@ public class AlarmReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        int alarmId = intent != null ? intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1) : -1;
         String toneUri = intent != null ? intent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI) : null;
+        int alarmId = intent != null ? intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1) : -1;
         AlarmRingingService.start(context, alarmId, toneUri);
     }
 }

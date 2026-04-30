@@ -37,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
 
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private final List<String> worldTimeZones = new ArrayList<>();
+    private final List<TextView> worldTimeClock = new ArrayList<>();
+    private final List<TextView> worldTimeOffsetViews = new ArrayList<>();
 
     private SharedPreferences preferences;
     private TextView mainTimeText;
@@ -47,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             updateMainClock();
-            renderWorldTimeCards();
+            tickWorldTimeCards();
             clockHandler.postDelayed(this, 1000);
         }
     };
@@ -74,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         loadWorldTimeZones();
         updateMainClock();
-        renderWorldTimeCards();
+        buildWorldTimeCards();
     }
 
     @Override
@@ -137,19 +139,16 @@ public class MainActivity extends AppCompatActivity {
                 .setItems(labels, (dialog, which) -> {
                     worldTimeZones.add(available.get(which));
                     saveWorldTimeZones();
-                    renderWorldTimeCards();
+                    buildWorldTimeCards();
                 })
                 .show();
     }
 
-    private void renderWorldTimeCards() {
+    private void buildWorldTimeCards() {
         worldTimeList.removeAllViews();
+        worldTimeClock.clear();
+        worldTimeOffsetViews.clear();
         LayoutInflater inflater = LayoutInflater.from(this);
-        String homeZoneId = preferences.getString(KEY_TIMEZONE, "Europe/Moscow");
-        TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
-        Date now = new Date();
-
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
         for (String zoneId : worldTimeZones) {
             View card = inflater.inflate(R.layout.item_world_time_card, worldTimeList, false);
@@ -157,34 +156,55 @@ public class MainActivity extends AppCompatActivity {
             TextView cityOffset = card.findViewById(R.id.tv_city_offset);
             TextView cityTime = card.findViewById(R.id.tv_city_time);
 
-            TimeZone zone = TimeZone.getTimeZone(zoneId);
-            timeFormat.setTimeZone(zone);
-
             cityName.setText(readableCityName(zoneId));
-            cityTime.setText(timeFormat.format(now));
-            cityOffset.setText(getString(R.string.today_offset_format, formatOffsetFromHome(homeZone, zone, now.getTime())));
+            worldTimeClock.add(cityTime);
+            worldTimeOffsetViews.add(cityOffset);
 
             card.setOnLongClickListener(v -> {
                 worldTimeZones.remove(zoneId);
                 saveWorldTimeZones();
-                renderWorldTimeCards();
+                buildWorldTimeCards();
                 return true;
             });
 
             worldTimeList.addView(card);
         }
+
+        tickWorldTimeCards();
+    }
+
+    private void tickWorldTimeCards() {
+        String homeZoneId = preferences.getString(KEY_TIMEZONE, "Europe/Moscow");
+        TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
+        Date now = new Date();
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+        for (int i = 0; i < worldTimeZones.size() && i < worldTimeClock.size(); i++) {
+            TimeZone zone = TimeZone.getTimeZone(worldTimeZones.get(i));
+            timeFormat.setTimeZone(zone);
+            worldTimeClock.get(i).setText(timeFormat.format(now));
+            worldTimeOffsetViews.get(i).setText(getString(R.string.today_offset_format,
+                    formatOffsetFromHome(homeZone, zone, now.getTime())));
+        }
     }
 
     private String formatOffsetFromHome(TimeZone homeZone, TimeZone targetZone, long nowMillis) {
         int diffMs = targetZone.getOffset(nowMillis) - homeZone.getOffset(nowMillis);
-        int diffHours = Math.round(diffMs / 3600000f);
-        if (diffHours == 0) {
+        int totalMinutes = diffMs / 60000;
+        if (totalMinutes == 0) {
             return getString(R.string.same_time_offset);
         }
-        if (diffHours > 0) {
-            return getString(R.string.offset_plus_hours, diffHours);
+        int absMinutes = Math.abs(totalMinutes);
+        int hours = absMinutes / 60;
+        int minutes = absMinutes % 60;
+        if (totalMinutes > 0) {
+            return minutes == 0
+                    ? getString(R.string.offset_plus_hours, hours)
+                    : getString(R.string.offset_plus_hours_minutes, hours, minutes);
         }
-        return getString(R.string.offset_minus_hours, Math.abs(diffHours));
+        return minutes == 0
+                ? getString(R.string.offset_minus_hours, hours)
+                : getString(R.string.offset_minus_hours_minutes, hours, minutes);
     }
 
     private String readableCityName(String zoneId) {

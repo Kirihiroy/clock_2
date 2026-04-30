@@ -17,12 +17,15 @@ public class AlarmRingActivity extends AppCompatActivity {
 
     private final Random random = new Random();
     private int correctAnswer;
+    private int difficulty;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm_ring);
         prepareWakeUpScreen();
+        difficulty = getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
+                .getInt(AlarmActivity.KEY_DIFFICULTY, 1);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -75,31 +78,58 @@ public class AlarmRingActivity extends AppCompatActivity {
     }
 
     private void generateMathExample(TextView view) {
-        int operation = random.nextInt(3);
-        int a;
-        int b;
+        int a, b;
         String expression;
 
-        if (operation == 0) {
-            a = 10 + random.nextInt(90);
-            b = 10 + random.nextInt(90);
-            correctAnswer = a + b;
-            expression = a + " + " + b + " = ?";
-        } else if (operation == 1) {
-            a = 30 + random.nextInt(70);
-            b = 10 + random.nextInt(30);
-            if (b > a) {
-                int tmp = a;
-                a = b;
-                b = tmp;
+        if (difficulty == 1) {
+            int operation = random.nextInt(2);
+            if (operation == 0) {
+                a = 1 + random.nextInt(5);
+                b = 1 + random.nextInt(10 - a);
+                correctAnswer = a + b;
+                expression = a + " + " + b + " = ?";
+            } else {
+                a = 1 + random.nextInt(9);
+                b = random.nextInt(a);
+                correctAnswer = a - b;
+                expression = a + " - " + b + " = ?";
             }
-            correctAnswer = a - b;
-            expression = a + " - " + b + " = ?";
+        } else if (difficulty == 2) {
+            int operation = random.nextInt(3);
+            if (operation == 0) {
+                a = 1 + random.nextInt(25);
+                b = 1 + random.nextInt(50 - a);
+                correctAnswer = a + b;
+                expression = a + " + " + b + " = ?";
+            } else if (operation == 1) {
+                a = 2 + random.nextInt(49);
+                b = 1 + random.nextInt(a - 1);
+                correctAnswer = a - b;
+                expression = a + " - " + b + " = ?";
+            } else {
+                a = 2 + random.nextInt(6);
+                b = 2 + random.nextInt(6);
+                correctAnswer = a * b;
+                expression = a + " × " + b + " = ?";
+            }
         } else {
-            a = 2 + random.nextInt(8);
-            b = 2 + random.nextInt(8);
-            correctAnswer = a * b;
-            expression = a + " × " + b + " = ?";
+            int operation = random.nextInt(3);
+            if (operation == 0) {
+                a = 1 + random.nextInt(50);
+                b = 1 + random.nextInt(100 - a);
+                correctAnswer = a + b;
+                expression = a + " + " + b + " = ?";
+            } else if (operation == 1) {
+                a = 2 + random.nextInt(98);
+                b = 1 + random.nextInt(a - 1);
+                correctAnswer = a - b;
+                expression = a + " - " + b + " = ?";
+            } else {
+                a = 2 + random.nextInt(9);
+                b = 2 + random.nextInt(100 / a - 1);
+                correctAnswer = a * b;
+                expression = a + " × " + b + " = ?";
+            }
         }
 
         view.setText(expression);

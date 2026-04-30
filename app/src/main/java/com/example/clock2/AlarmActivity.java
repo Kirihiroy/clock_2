@@ -2,14 +2,18 @@ package com.example.clock2;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,7 +47,8 @@ public class AlarmActivity extends AppCompatActivity {
     public static final String PREFS_NAME = "alarm_prefs";
     public static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
     public static final String KEY_ALARM_ID = "alarm_id";
-    private static final String KEY_ALARMS_JSON = "alarms_json";
+    public static final String KEY_DIFFICULTY = "puzzle_difficulty";
+    public static final String KEY_ALARMS_JSON = "alarms_json";
     private static final int REQ_POST_NOTIFICATIONS = 1108;
 
     private AlarmManager alarmManager;
@@ -58,6 +63,8 @@ public class AlarmActivity extends AppCompatActivity {
         setContentView(R.layout.activity_alarm);
 
         ensureNotificationPermission();
+        ensureBatteryOptimizationExempt();
+        ensureFullScreenIntentPermission();
 
         FloatingActionButton addAlarmButton = findViewById(R.id.fab_add_alarm);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
@@ -73,6 +80,30 @@ public class AlarmActivity extends AppCompatActivity {
         addAlarmButton.setOnClickListener(v -> showAddAlarmDialog());
         worldTimeNav.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
         settingsNav.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+    }
+
+    private void ensureBatteryOptimizationExempt() {
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        if (pm == null || pm.isIgnoringBatteryOptimizations(getPackageName())) return;
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.battery_opt_message)
+                .setPositiveButton(R.string.open_settings, (d, w) -> startActivity(
+                        new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void ensureFullScreenIntentPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return;
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm == null || nm.canUseFullScreenIntent()) return;
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.full_screen_intent_message)
+                .setPositiveButton(R.string.open_settings, (d, w) -> startActivity(
+                        new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                                Uri.parse("package:" + getPackageName()))))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void ensureNotificationPermission() {
@@ -131,13 +162,6 @@ public class AlarmActivity extends AppCompatActivity {
     }
 
     private void checkPermissionAndRun(Runnable action) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && alarmManager != null
-                && !alarmManager.canScheduleExactAlarms()) {
-            Toast.makeText(this, R.string.request_exact_alarm_permission, Toast.LENGTH_LONG).show();
-            startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM));
-            return;
-        }
         action.run();
     }
 
@@ -146,7 +170,7 @@ public class AlarmActivity extends AppCompatActivity {
                 .getString(KEY_ALARM_TONE_URI, "");
 
         AlarmItem item = new AlarmItem();
-        item.id = (int) System.currentTimeMillis();
+        item.id = generateAlarmId();
         item.hour = hour;
         item.minute = minute;
         item.toneUri = selectedToneUri;
@@ -173,15 +197,14 @@ public class AlarmActivity extends AppCompatActivity {
     }
 
     private void scheduleAlarm(AlarmItem item) {
-        if (alarmManager == null) {
-            return;
-        }
+        if (alarmManager == null) return;
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, item.hour);
         calendar.set(Calendar.MINUTE, item.minute);
         calendar.set(Calendar.SECOND, 0);
-        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+        calendar.set(Calendar.MILLISECOND, 0);
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
             calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
 
@@ -189,18 +212,29 @@ public class AlarmActivity extends AppCompatActivity {
         intent.putExtra(KEY_ALARM_TONE_URI, item.toneUri);
         intent.putExtra(KEY_ALARM_ID, item.id);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+        PendingIntent triggerIntent = PendingIntent.getBroadcast(
                 this,
                 item.id,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                calendar.getTimeInMillis(),
-                pendingIntent
+        // setAlarmClock — надёжный API: система показывает иконку будильника в статус-баре
+        // и доставляет сигнал даже при агрессивной оптимизации батареи (Xiaomi, Samsung и др.)
+        PendingIntent showIntent = PendingIntent.getActivity(
+                this,
+                item.id,
+                new Intent(this, AlarmActivity.class),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        try {
+            alarmManager.setAlarmClock(
+                    new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), showIntent),
+                    triggerIntent
+            );
+        } catch (SecurityException e) {
+            Toast.makeText(this, R.string.request_exact_alarm_permission, Toast.LENGTH_LONG).show();
+        }
     }
 
     private void cancelAlarm(AlarmItem item) {
@@ -247,8 +281,9 @@ public class AlarmActivity extends AppCompatActivity {
 
             updateCardVisualState(card, timeText, stateText, item.enabled);
 
+            alarmSwitch.setClickable(false);
+            alarmSwitch.setFocusable(false);
             card.setOnClickListener(v -> toggleAlarm(item, card, timeText, stateText, alarmSwitch));
-            alarmSwitch.setOnClickListener(v -> toggleAlarm(item, card, timeText, stateText, alarmSwitch));
             deleteButton.setOnClickListener(v -> deleteAlarm(item));
 
             alarmListLayout.addView(card);
@@ -264,13 +299,12 @@ public class AlarmActivity extends AppCompatActivity {
     }
 
     private void updateCardVisualState(MaterialCardView card, TextView timeText, TextView stateText, boolean enabled) {
-        int cardColor = enabled ? 0xFF2E3F34 : 0xFF2F2F2F;
-        int primaryText = enabled ? 0xFFFFFFFF : 0xFF9E9E9E;
-        int secondaryText = enabled ? 0xFFBAE6C7 : 0xFF757575;
-
-        card.setCardBackgroundColor(cardColor);
-        timeText.setTextColor(primaryText);
-        stateText.setTextColor(secondaryText);
+        card.setCardBackgroundColor(ContextCompat.getColor(this,
+                enabled ? R.color.alarm_card_enabled_bg : R.color.alarm_card_disabled_bg));
+        timeText.setTextColor(ContextCompat.getColor(this,
+                enabled ? R.color.alarm_card_enabled_text : R.color.alarm_card_disabled_text));
+        stateText.setTextColor(ContextCompat.getColor(this,
+                enabled ? R.color.alarm_card_enabled_secondary : R.color.alarm_card_disabled_secondary));
         stateText.setText(enabled ? R.string.alarm_enabled : R.string.alarm_disabled);
     }
 
@@ -319,6 +353,13 @@ public class AlarmActivity extends AppCompatActivity {
 
     private String formatTime(int hour, int minute) {
         return String.format(Locale.getDefault(), "%02d:%02d", hour, minute);
+    }
+
+    private int generateAlarmId() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int nextId = prefs.getInt("next_alarm_id", 1);
+        prefs.edit().putInt("next_alarm_id", nextId + 1).apply();
+        return nextId;
     }
 
     private void loadAlarms() {

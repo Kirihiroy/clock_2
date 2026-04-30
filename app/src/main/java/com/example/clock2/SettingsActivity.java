@@ -22,6 +22,7 @@ public class SettingsActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     private Spinner timeZoneSpinner;
     private Spinner alarmToneSpinner;
+    private Spinner difficultySpinner;
     private Switch themeSwitch;
     private final List<String> alarmToneUris = new ArrayList<>();
 
@@ -38,6 +39,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         timeZoneSpinner = findViewById(R.id.spinner_timezone);
         alarmToneSpinner = findViewById(R.id.spinner_alarm_tone_settings);
+        difficultySpinner = findViewById(R.id.spinner_difficulty);
         themeSwitch = findViewById(R.id.switch_theme);
         Button saveButton = findViewById(R.id.btn_save_settings);
 
@@ -105,6 +107,10 @@ public class SettingsActivity extends AppCompatActivity {
         if (toneIndex >= 0) {
             alarmToneSpinner.setSelection(toneIndex);
         }
+
+        int savedDifficulty = getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
+                .getInt(AlarmActivity.KEY_DIFFICULTY, 1);
+        difficultySpinner.setSelection(savedDifficulty - 1);
     }
 
     private void saveSettings() {
@@ -121,6 +127,12 @@ public class SettingsActivity extends AppCompatActivity {
         getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
                 .edit()
                 .putString(AlarmActivity.KEY_ALARM_TONE_URI, selectedToneUri)
+                .apply();
+
+        int selectedDifficulty = difficultySpinner.getSelectedItemPosition() + 1;
+        getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putInt(AlarmActivity.KEY_DIFFICULTY, selectedDifficulty)
                 .apply();
 
         AppCompatDelegate.setDefaultNightMode(
