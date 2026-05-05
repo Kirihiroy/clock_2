@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Заголовок: Отмена | Новый сигнал | Готово -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -40,17 +41,98 @@
             android:textSize="16sp" />
     </LinearLayout>
 
+    <!-- Подсказка: обновляется динамически — показывает паттерн повтора -->
     <TextView
         android:id="@+id/tv_ring_hint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="14dp"
-        android:text="@string/ring_tomorrow_hint"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
         android:textColor="#B0B0B0"
         android:textSize="14sp" />
 
+    <!-- Выбор дней недели: Пн Вт Ср Чт Пт Сб Вс -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_day_mon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Пн"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_tue"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Вт"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_wed"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Ср"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_thu"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Чт"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_fri"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Пт"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_sat"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Сб"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_day_sun"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:gravity="center"
+            android:text="Вс"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <!-- Выбор часов и минут -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
