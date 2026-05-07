@@ -46,9 +46,19 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         long nextMillis = AlarmActivity.nextTriggerMillis(hour, minute, repeatDays);
 
-        // Переиспользуем оригинальный intent (он содержит все нужные extras)
+        // Создаём свежий Intent, а не переиспользуем полученный broadcast-intent:
+        // фреймворк может его модифицировать, добавить служебные флаги,
+        // не установить компонент — всё это ломает PendingIntent.
+        String toneUri = originalIntent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI);
+        Intent freshIntent = new Intent(context, AlarmReceiver.class);
+        freshIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
+        freshIntent.putExtra(AlarmActivity.KEY_ALARM_ID,       alarmId);
+        freshIntent.putExtra(AlarmActivity.KEY_ALARM_HOUR,     hour);
+        freshIntent.putExtra(AlarmActivity.KEY_ALARM_MINUTE,   minute);
+        freshIntent.putExtra(AlarmActivity.KEY_REPEAT_DAYS,    repeatDays);
+
         PendingIntent triggerIntent = PendingIntent.getBroadcast(
-                context, alarmId, originalIntent,
+                context, alarmId, freshIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         PendingIntent showIntent = PendingIntent.getActivity(

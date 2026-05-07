@@ -33,23 +33,31 @@ public class BootReceiver extends BroadcastReceiver {
                 (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) return;
 
+        JSONArray array;
         try {
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
+            array = new JSONArray(json);
+        } catch (JSONException ignored) {
+            return; // Повреждённый массив — нечего перепланировать
+        }
+
+        for (int i = 0; i < array.length(); i++) {
+            try {
                 JSONObject obj = array.getJSONObject(i);
                 if (!obj.optBoolean("enabled", true)) continue;
 
-                int    id      = obj.getInt("id");
-                int    hour    = obj.getInt("hour");
-                int    minute  = obj.getInt("minute");
+                int    id      = obj.optInt("id", -1);
+                int    hour    = obj.optInt("hour", -1);
+                int    minute  = obj.optInt("minute", -1);
                 String toneUri = obj.optString("toneUri", "");
 
-                // Читаем repeatDays из JSON
+                // Пропускаем запись с некорректными обязательными полями
+                if (id < 0 || hour < 0 || hour > 23 || minute < 0 || minute > 59) continue;
+
                 JSONArray daysJson   = obj.optJSONArray("repeatDays");
                 int[]     repeatDays = new int[daysJson != null ? daysJson.length() : 0];
                 if (daysJson != null) {
                     for (int j = 0; j < daysJson.length(); j++) {
-                        repeatDays[j] = daysJson.getInt(j);
+                        repeatDays[j] = daysJson.optInt(j, -1);
                     }
                 }
 
@@ -75,11 +83,11 @@ public class BootReceiver extends BroadcastReceiver {
                             new AlarmManager.AlarmClockInfo(triggerMillis, showIntent),
                             triggerIntent);
                 } catch (SecurityException ignored) {
-                    // SCHEDULE_EXACT_ALARM не выдан — пропускаем
+                    // SCHEDULE_EXACT_ALARM не выдан — пропускаем этот будильник
                 }
+            } catch (JSONException ignored) {
+                // Один битый объект — пропускаем, остальные перепланируем
             }
-        } catch (JSONException ignored) {
-            // Повреждённые данные — нечего перепланировать
         }
     }
 }

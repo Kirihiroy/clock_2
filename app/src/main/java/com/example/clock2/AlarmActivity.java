@@ -248,8 +248,7 @@ public class AlarmActivity extends AppCompatActivity {
 
         cancelButton.setOnClickListener(v -> dialog.dismiss());
         doneButton.setOnClickListener(v -> {
-            checkPermissionAndRun(() ->
-                    addNewAlarm(hourPicker.getValue(), minutePicker.getValue(), selectedDays));
+            addNewAlarm(hourPicker.getValue(), minutePicker.getValue(), selectedDays);
             dialog.dismiss();
         });
         dialog.show();
@@ -262,10 +261,6 @@ public class AlarmActivity extends AppCompatActivity {
         bg.setColor(selected ? 0xFF4DA3FF : 0xFF555555);
         view.setBackground(bg);
         view.setTextColor(Color.WHITE);
-    }
-
-    private void checkPermissionAndRun(Runnable action) {
-        action.run();
     }
 
     // -----------------------------------------------------------------------
@@ -411,13 +406,7 @@ public class AlarmActivity extends AppCompatActivity {
 
     private void toggleAlarm(AlarmItem item, MaterialCardView card,
                               TextView timeText, TextView stateText, SwitchMaterial alarmSwitch) {
-        boolean newState = !item.enabled;
-        if (newState) {
-            checkPermissionAndRun(() ->
-                    applyAlarmState(item, true, card, timeText, stateText, alarmSwitch));
-        } else {
-            applyAlarmState(item, false, card, timeText, stateText, alarmSwitch);
-        }
+        applyAlarmState(item, !item.enabled, card, timeText, stateText, alarmSwitch);
     }
 
     private void applyAlarmState(AlarmItem item, boolean enabled, MaterialCardView card,
@@ -494,27 +483,39 @@ public class AlarmActivity extends AppCompatActivity {
         alarms.clear();
         String json = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getString(KEY_ALARMS_JSON, "[]");
+        JSONArray array;
         try {
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
+            array = new JSONArray(json);
+        } catch (JSONException e) {
+            return; // корневой массив повреждён — нечего загружать
+        }
+
+        for (int i = 0; i < array.length(); i++) {
+            try {
                 JSONObject obj  = array.getJSONObject(i);
                 AlarmItem  item = new AlarmItem();
                 item.id      = obj.getInt("id");
-                item.hour    = obj.getInt("hour");
-                item.minute  = obj.getInt("minute");
+                // Валидируем диапазон: Calendar.set() принимает любое int,
+                // но значения вне [0..23]/[0..59] дают непредсказуемое поведение
+                item.hour    = Math.max(0, Math.min(23, obj.getInt("hour")));
+                item.minute  = Math.max(0, Math.min(59, obj.getInt("minute")));
                 item.toneUri = obj.optString("toneUri", "");
                 item.enabled = obj.optBoolean("enabled", true);
 
                 JSONArray daysJson = obj.optJSONArray("repeatDays");
                 if (daysJson != null) {
                     for (int j = 0; j < daysJson.length(); j++) {
-                        item.repeatDays.add(daysJson.getInt(j));
+                        int day = daysJson.getInt(j);
+                        // Принимаем только корректные константы Calendar.DAY_OF_WEEK (1–7)
+                        if (day >= Calendar.SUNDAY && day <= Calendar.SATURDAY) {
+                            item.repeatDays.add(day);
+                        }
                     }
                 }
                 alarms.add(item);
+            } catch (JSONException e) {
+                // Пропускаем отдельный повреждённый объект, не сбрасываем весь список
             }
-        } catch (JSONException e) {
-            alarms.clear();
         }
     }
 
