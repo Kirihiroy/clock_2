@@ -10,7 +10,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,8 +19,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.NumberPicker;
 import android.widget.TextView;
+import android.widget.NumberPicker;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -40,88 +39,23 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class AlarmActivity extends AppCompatActivity {
 
-    public static final String PREFS_NAME        = "alarm_prefs";
+    public static final String PREFS_NAME = "alarm_prefs";
     public static final String KEY_ALARM_TONE_URI = "alarm_tone_uri";
-    public static final String KEY_ALARM_ID       = "alarm_id";
-    public static final String KEY_ALARM_HOUR     = "alarm_hour";
-    public static final String KEY_ALARM_MINUTE   = "alarm_minute";
-    public static final String KEY_REPEAT_DAYS    = "repeat_days";
-    public static final String KEY_DIFFICULTY     = "puzzle_difficulty";
-    public static final String KEY_ALARMS_JSON    = "alarms_json";
-
+    public static final String KEY_ALARM_ID = "alarm_id";
+    public static final String KEY_DIFFICULTY = "puzzle_difficulty";
+    public static final String KEY_ALARMS_JSON = "alarms_json";
     private static final int REQ_POST_NOTIFICATIONS = 1108;
 
-    // Порядок отображения дней (Пн…Вс). Значения — константы Calendar.DAY_OF_WEEK.
-    static final int[]    DAY_ORDER  = {
-        Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY,
-        Calendar.THURSDAY, Calendar.FRIDAY, Calendar.SATURDAY, Calendar.SUNDAY
-    };
-    private static final String[] DAY_LABELS = {"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
-
-    // IDs кнопок дней в dialog_add_alarm.xml — порядок совпадает с DAY_ORDER
-    private static final int[] DAY_VIEW_IDS = {
-        R.id.tv_day_mon, R.id.tv_day_tue, R.id.tv_day_wed, R.id.tv_day_thu,
-        R.id.tv_day_fri, R.id.tv_day_sat, R.id.tv_day_sun
-    };
-
     private AlarmManager alarmManager;
-    private TextView     alarmStatusText;
+    private TextView alarmStatusText;
     private LinearLayout alarmListLayout;
 
     private final List<AlarmItem> alarms = new ArrayList<>();
-
-    // -----------------------------------------------------------------------
-    // Публичный статический метод — используется также AlarmReceiver и BootReceiver
-    // -----------------------------------------------------------------------
-
-    /**
-     * Вычисляет ближайшее время срабатывания.
-     * repeatDays == null или пустой массив → однократный будильник.
-     */
-    public static long nextTriggerMillis(int hour, int minute, int[] repeatDays) {
-        Calendar trigger = Calendar.getInstance();
-        trigger.set(Calendar.HOUR_OF_DAY, hour);
-        trigger.set(Calendar.MINUTE,      minute);
-        trigger.set(Calendar.SECOND,      0);
-        trigger.set(Calendar.MILLISECOND, 0);
-
-        long now = System.currentTimeMillis();
-
-        if (repeatDays == null || repeatDays.length == 0) {
-            // Однократный: если время уже прошло — завтра
-            if (trigger.getTimeInMillis() <= now) {
-                trigger.add(Calendar.DAY_OF_MONTH, 1);
-            }
-            return trigger.getTimeInMillis();
-        }
-
-        // Повтор: ищем ближайший подходящий день (максимум 7 итераций)
-        Set<Integer> days = new HashSet<>();
-        for (int d : repeatDays) days.add(d);
-
-        for (int i = 0; i < 7; i++) {
-            if (days.contains(trigger.get(Calendar.DAY_OF_WEEK))
-                    && trigger.getTimeInMillis() > now) {
-                return trigger.getTimeInMillis();
-            }
-            trigger.add(Calendar.DAY_OF_MONTH, 1);
-        }
-        return trigger.getTimeInMillis(); // не должны сюда попасть при непустом repeatDays
-    }
-
-    // -----------------------------------------------------------------------
-    // Lifecycle
-    // -----------------------------------------------------------------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,22 +69,18 @@ public class AlarmActivity extends AppCompatActivity {
         FloatingActionButton addAlarmButton = findViewById(R.id.fab_add_alarm);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
         alarmListLayout = findViewById(R.id.layout_alarm_list);
-        alarmManager    = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         View worldTimeNav = findViewById(R.id.nav_world_time);
-        View settingsNav  = findViewById(R.id.nav_settings);
+        View settingsNav = findViewById(R.id.nav_settings);
 
         loadAlarms();
         renderAlarmCards();
 
         addAlarmButton.setOnClickListener(v -> showAddAlarmDialog());
         worldTimeNav.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
-        settingsNav.setOnClickListener(v  -> startActivity(new Intent(this, SettingsActivity.class)));
+        settingsNav.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
     }
-
-    // -----------------------------------------------------------------------
-    // Разрешения и системные диалоги
-    // -----------------------------------------------------------------------
 
     private void ensureBatteryOptimizationExempt() {
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
@@ -177,121 +107,82 @@ public class AlarmActivity extends AppCompatActivity {
     }
 
     private void ensureNotificationPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                == PackageManager.PERMISSION_GRANTED) return;
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                REQ_POST_NOTIFICATIONS);
+                REQ_POST_NOTIFICATIONS
+        );
     }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQ_POST_NOTIFICATIONS
-                && (grantResults.length == 0
-                    || grantResults[0] != PackageManager.PERMISSION_GRANTED)) {
-            Toast.makeText(this, R.string.notification_permission_denied, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Диалог добавления будильника
-    // -----------------------------------------------------------------------
 
     private void showAddAlarmDialog() {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_alarm, null, false);
+        TextView cancelButton = dialogView.findViewById(R.id.tv_cancel_add_alarm);
+        TextView doneButton = dialogView.findViewById(R.id.tv_done_add_alarm);
+        NumberPicker hourPicker = dialogView.findViewById(R.id.np_hours);
+        NumberPicker minutePicker = dialogView.findViewById(R.id.np_minutes);
 
-        TextView     cancelButton  = dialogView.findViewById(R.id.tv_cancel_add_alarm);
-        TextView     doneButton    = dialogView.findViewById(R.id.tv_done_add_alarm);
-        TextView     hintText      = dialogView.findViewById(R.id.tv_ring_hint);
-        NumberPicker hourPicker    = dialogView.findViewById(R.id.np_hours);
-        NumberPicker minutePicker  = dialogView.findViewById(R.id.np_minutes);
-
-        // NumberPicker
         Calendar now = Calendar.getInstance();
+        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+        int currentMinute = now.get(Calendar.MINUTE);
+
         hourPicker.setMinValue(0);
         hourPicker.setMaxValue(23);
-        hourPicker.setValue(now.get(Calendar.HOUR_OF_DAY));
-        hourPicker.setFormatter(v -> String.format(Locale.getDefault(), "%02d ч", v));
+        hourPicker.setValue(currentHour);
+        hourPicker.setFormatter(value -> String.format(Locale.getDefault(), "%02d ч", value));
 
         minutePicker.setMinValue(0);
         minutePicker.setMaxValue(59);
-        minutePicker.setValue(now.get(Calendar.MINUTE));
-        minutePicker.setFormatter(v -> String.format(Locale.getDefault(), "%02d мин.", v));
-
-        // Кнопки дней недели
-        Set<Integer> selectedDays = new TreeSet<>();
-        Map<Integer, TextView> dayViews = new LinkedHashMap<>();
-
-        for (int i = 0; i < DAY_ORDER.length; i++) {
-            TextView tv  = dialogView.findViewById(DAY_VIEW_IDS[i]);
-            int      day = DAY_ORDER[i];
-            dayViews.put(day, tv);
-            applyDayButtonStyle(tv, false);
-            tv.setOnClickListener(v -> {
-                boolean nowSelected = !selectedDays.contains(day);
-                if (nowSelected) selectedDays.add(day); else selectedDays.remove(day);
-                applyDayButtonStyle(tv, nowSelected);
-                hintText.setText(formatRepeatLabel(selectedDays));
-            });
-        }
-        hintText.setText(formatRepeatLabel(selectedDays));
+        minutePicker.setValue(currentMinute);
+        minutePicker.setFormatter(value -> String.format(Locale.getDefault(), "%02d мин.", value));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setView(dialogView)
                 .create();
+
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
 
         cancelButton.setOnClickListener(v -> dialog.dismiss());
         doneButton.setOnClickListener(v -> {
-            checkPermissionAndRun(() ->
-                    addNewAlarm(hourPicker.getValue(), minutePicker.getValue(), selectedDays));
+            int hour = hourPicker.getValue();
+            int minute = minutePicker.getValue();
+            checkPermissionAndRun(() -> addNewAlarm(hour, minute));
             dialog.dismiss();
         });
-        dialog.show();
-    }
 
-    /** Визуальное состояние кнопки дня: выбранный — синий круг, нет — серый. */
-    private void applyDayButtonStyle(TextView view, boolean selected) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(selected ? 0xFF4DA3FF : 0xFF555555);
-        view.setBackground(bg);
-        view.setTextColor(Color.WHITE);
+        dialog.show();
     }
 
     private void checkPermissionAndRun(Runnable action) {
         action.run();
     }
 
-    // -----------------------------------------------------------------------
-    // CRUD будильников
-    // -----------------------------------------------------------------------
-
-    private void addNewAlarm(int hour, int minute, Set<Integer> repeatDays) {
-        String toneUri = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+    private void addNewAlarm(int hour, int minute) {
+        String selectedToneUri = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getString(KEY_ALARM_TONE_URI, "");
 
         AlarmItem item = new AlarmItem();
-        item.id         = generateAlarmId();
-        item.hour       = hour;
-        item.minute     = minute;
-        item.toneUri    = toneUri;
-        item.enabled    = true;
-        item.repeatDays = new TreeSet<>(repeatDays);
+        item.id = generateAlarmId();
+        item.hour = hour;
+        item.minute = minute;
+        item.toneUri = selectedToneUri;
+        item.enabled = true;
 
         alarms.add(0, item);
+
         scheduleAlarm(item);
         saveAlarms();
         renderAlarmCards();
 
-        Toast.makeText(this,
-                getString(R.string.alarm_set_message, hour, minute),
-                Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.alarm_set_message, hour, minute), Toast.LENGTH_SHORT).show();
     }
 
     private void deleteAlarm(AlarmItem item) {
@@ -299,60 +190,68 @@ public class AlarmActivity extends AppCompatActivity {
         alarms.remove(item);
         saveAlarms();
         renderAlarmCards();
+
         Toast.makeText(this,
                 getString(R.string.alarm_deleted_message, formatTime(item.hour, item.minute)),
                 Toast.LENGTH_SHORT).show();
     }
 
-    // -----------------------------------------------------------------------
-    // Планирование через AlarmManager
-    // -----------------------------------------------------------------------
-
     private void scheduleAlarm(AlarmItem item) {
         if (alarmManager == null) return;
 
-        int[]  repeatArr     = item.repeatDaysToIntArray();
-        long   triggerMillis = nextTriggerMillis(item.hour, item.minute, repeatArr);
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, item.hour);
+        calendar.set(Calendar.MINUTE, item.minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+        }
 
         Intent intent = new Intent(this, AlarmReceiver.class);
         intent.putExtra(KEY_ALARM_TONE_URI, item.toneUri);
-        intent.putExtra(KEY_ALARM_ID,       item.id);
-        intent.putExtra(KEY_ALARM_HOUR,     item.hour);
-        intent.putExtra(KEY_ALARM_MINUTE,   item.minute);
-        intent.putExtra(KEY_REPEAT_DAYS,    repeatArr);
+        intent.putExtra(KEY_ALARM_ID, item.id);
 
         PendingIntent triggerIntent = PendingIntent.getBroadcast(
-                this, item.id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                this,
+                item.id,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
 
-        // setAlarmClock: система показывает иконку будильника и доставляет сигнал
-        // даже при агрессивной оптимизации батареи (Xiaomi, Samsung и др.)
+        // setAlarmClock — надёжный API: система показывает иконку будильника в статус-баре
+        // и доставляет сигнал даже при агрессивной оптимизации батареи (Xiaomi, Samsung и др.)
         PendingIntent showIntent = PendingIntent.getActivity(
-                this, item.id, new Intent(this, AlarmActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
+                this,
+                item.id,
+                new Intent(this, AlarmActivity.class),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
         try {
             alarmManager.setAlarmClock(
-                    new AlarmManager.AlarmClockInfo(triggerMillis, showIntent),
-                    triggerIntent);
+                    new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), showIntent),
+                    triggerIntent
+            );
         } catch (SecurityException e) {
             Toast.makeText(this, R.string.request_exact_alarm_permission, Toast.LENGTH_LONG).show();
         }
     }
 
     private void cancelAlarm(AlarmItem item) {
-        if (alarmManager == null) return;
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(
-                this, item.id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        alarmManager.cancel(pi);
-        pi.cancel();
-    }
+        if (alarmManager == null) {
+            return;
+        }
 
-    // -----------------------------------------------------------------------
-    // Отрисовка карточек
-    // -----------------------------------------------------------------------
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                item.id,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        alarmManager.cancel(pendingIntent);
+        pendingIntent.cancel();
+    }
 
     private void renderAlarmCards() {
         alarmListLayout.removeAllViews();
@@ -361,27 +260,30 @@ public class AlarmActivity extends AppCompatActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
 
         for (AlarmItem item : alarms) {
-            if (item.enabled) activeCount++;
+            if (item.enabled) {
+                activeCount++;
+            }
 
             MaterialCardView card = (MaterialCardView) inflater.inflate(
-                    R.layout.item_alarm_card, alarmListLayout, false);
+                    R.layout.item_alarm_card,
+                    alarmListLayout,
+                    false
+            );
 
-            TextView     timeText   = card.findViewById(R.id.tv_alarm_time);
-            TextView     stateText  = card.findViewById(R.id.tv_alarm_state);
-            TextView     repeatText = card.findViewById(R.id.tv_repeat_days);
+            TextView timeText = card.findViewById(R.id.tv_alarm_time);
+            TextView stateText = card.findViewById(R.id.tv_alarm_state);
             SwitchMaterial alarmSwitch = card.findViewById(R.id.switch_alarm);
-            ImageButton  deleteButton  = card.findViewById(R.id.btn_delete_alarm);
+            ImageButton deleteButton = card.findViewById(R.id.btn_delete_alarm);
 
-            timeText.setText(String.format(Locale.getDefault(), "%02d:%02d", item.hour, item.minute));
+            String time = String.format(Locale.getDefault(), "%02d:%02d", item.hour, item.minute);
+            timeText.setText(time);
             alarmSwitch.setChecked(item.enabled);
-            repeatText.setText(formatRepeatLabel(item.repeatDays));
 
             updateCardVisualState(card, timeText, stateText, item.enabled);
 
             alarmSwitch.setClickable(false);
             alarmSwitch.setFocusable(false);
-            card.setOnClickListener(v ->
-                    toggleAlarm(item, card, timeText, stateText, alarmSwitch));
+            card.setOnClickListener(v -> toggleAlarm(item, card, timeText, stateText, alarmSwitch));
             deleteButton.setOnClickListener(v -> deleteAlarm(item));
 
             alarmListLayout.addView(card);
@@ -396,10 +298,7 @@ public class AlarmActivity extends AppCompatActivity {
         }
     }
 
-    private void updateCardVisualState(MaterialCardView card,
-                                        TextView timeText,
-                                        TextView stateText,
-                                        boolean enabled) {
+    private void updateCardVisualState(MaterialCardView card, TextView timeText, TextView stateText, boolean enabled) {
         card.setCardBackgroundColor(ContextCompat.getColor(this,
                 enabled ? R.color.alarm_card_enabled_bg : R.color.alarm_card_disabled_bg));
         timeText.setTextColor(ContextCompat.getColor(this,
@@ -409,19 +308,29 @@ public class AlarmActivity extends AppCompatActivity {
         stateText.setText(enabled ? R.string.alarm_enabled : R.string.alarm_disabled);
     }
 
-    private void toggleAlarm(AlarmItem item, MaterialCardView card,
-                              TextView timeText, TextView stateText, SwitchMaterial alarmSwitch) {
+    private void toggleAlarm(
+            AlarmItem item,
+            MaterialCardView card,
+            TextView timeText,
+            TextView stateText,
+            SwitchMaterial alarmSwitch
+    ) {
         boolean newState = !item.enabled;
         if (newState) {
-            checkPermissionAndRun(() ->
-                    applyAlarmState(item, true, card, timeText, stateText, alarmSwitch));
-        } else {
-            applyAlarmState(item, false, card, timeText, stateText, alarmSwitch);
+            checkPermissionAndRun(() -> applyAlarmState(item, true, card, timeText, stateText, alarmSwitch));
+            return;
         }
+        applyAlarmState(item, false, card, timeText, stateText, alarmSwitch);
     }
 
-    private void applyAlarmState(AlarmItem item, boolean enabled, MaterialCardView card,
-                                  TextView timeText, TextView stateText, SwitchMaterial alarmSwitch) {
+    private void applyAlarmState(
+            AlarmItem item,
+            boolean enabled,
+            MaterialCardView card,
+            TextView timeText,
+            TextView stateText,
+            SwitchMaterial alarmSwitch
+    ) {
         item.enabled = enabled;
         alarmSwitch.setChecked(enabled);
 
@@ -439,40 +348,7 @@ public class AlarmActivity extends AppCompatActivity {
 
         updateCardVisualState(card, timeText, stateText, enabled);
         saveAlarms();
-        // renderAlarmCards() здесь не нужен: updateCardVisualState уже обновил конкретную карточку
-    }
-
-    // -----------------------------------------------------------------------
-    // Вспомогательные методы
-    // -----------------------------------------------------------------------
-
-    /** Формирует читаемую метку повтора для карточки и подсказки в диалоге. */
-    String formatRepeatLabel(Set<Integer> repeatDays) {
-        if (repeatDays.isEmpty()) {
-            return getString(R.string.repeat_once);
-        }
-        if (repeatDays.size() == 7) {
-            return getString(R.string.repeat_every_day);
-        }
-        if (repeatDays.size() == 5
-                && !repeatDays.contains(Calendar.SATURDAY)
-                && !repeatDays.contains(Calendar.SUNDAY)) {
-            return getString(R.string.repeat_weekdays);
-        }
-        if (repeatDays.size() == 2
-                && repeatDays.contains(Calendar.SATURDAY)
-                && repeatDays.contains(Calendar.SUNDAY)) {
-            return getString(R.string.repeat_weekends);
-        }
-        // Перечисление отдельных дней в порядке Пн…Вс
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < DAY_ORDER.length; i++) {
-            if (repeatDays.contains(DAY_ORDER[i])) {
-                if (sb.length() > 0) sb.append(' ');
-                sb.append(DAY_LABELS[i]);
-            }
-        }
-        return sb.toString();
+        renderAlarmCards();
     }
 
     private String formatTime(int hour, int minute) {
@@ -486,31 +362,20 @@ public class AlarmActivity extends AppCompatActivity {
         return nextId;
     }
 
-    // -----------------------------------------------------------------------
-    // Сохранение / загрузка (SharedPreferences + JSON)
-    // -----------------------------------------------------------------------
-
     private void loadAlarms() {
         alarms.clear();
-        String json = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getString(KEY_ALARMS_JSON, "[]");
+        String json = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_ALARMS_JSON, "[]");
+
         try {
             JSONArray array = new JSONArray(json);
             for (int i = 0; i < array.length(); i++) {
-                JSONObject obj  = array.getJSONObject(i);
-                AlarmItem  item = new AlarmItem();
-                item.id      = obj.getInt("id");
-                item.hour    = obj.getInt("hour");
-                item.minute  = obj.getInt("minute");
-                item.toneUri = obj.optString("toneUri", "");
-                item.enabled = obj.optBoolean("enabled", true);
-
-                JSONArray daysJson = obj.optJSONArray("repeatDays");
-                if (daysJson != null) {
-                    for (int j = 0; j < daysJson.length(); j++) {
-                        item.repeatDays.add(daysJson.getInt(j));
-                    }
-                }
+                JSONObject object = array.getJSONObject(i);
+                AlarmItem item = new AlarmItem();
+                item.id = object.getInt("id");
+                item.hour = object.getInt("hour");
+                item.minute = object.getInt("minute");
+                item.toneUri = object.optString("toneUri", "");
+                item.enabled = object.optBoolean("enabled", true);
                 alarms.add(item);
             }
         } catch (JSONException e) {
@@ -521,43 +386,30 @@ public class AlarmActivity extends AppCompatActivity {
     private void saveAlarms() {
         JSONArray array = new JSONArray();
         for (AlarmItem item : alarms) {
+            JSONObject object = new JSONObject();
             try {
-                JSONObject obj      = new JSONObject();
-                JSONArray  daysJson = new JSONArray();
-                for (int d : item.repeatDays) daysJson.put(d);
-
-                obj.put("id",         item.id);
-                obj.put("hour",       item.hour);
-                obj.put("minute",     item.minute);
-                obj.put("toneUri",    item.toneUri);
-                obj.put("enabled",    item.enabled);
-                obj.put("repeatDays", daysJson);
-                array.put(obj);
-            } catch (JSONException ignored) {}
+                object.put("id", item.id);
+                object.put("hour", item.hour);
+                object.put("minute", item.minute);
+                object.put("toneUri", item.toneUri);
+                object.put("enabled", item.enabled);
+                array.put(object);
+            } catch (JSONException ignored) {
+                // пропускаем некорректный объект
+            }
         }
+
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .edit()
                 .putString(KEY_ALARMS_JSON, array.toString())
                 .apply();
     }
 
-    // -----------------------------------------------------------------------
-    // Модель данных
-    // -----------------------------------------------------------------------
-
-    static class AlarmItem {
-        int           id;
-        int           hour;
-        int           minute;
-        String        toneUri;
-        boolean       enabled;
-        Set<Integer>  repeatDays = new TreeSet<>();
-
-        int[] repeatDaysToIntArray() {
-            int[] arr = new int[repeatDays.size()];
-            int   i   = 0;
-            for (int d : repeatDays) arr[i++] = d;
-            return arr;
-        }
+    private static class AlarmItem {
+        int id;
+        int hour;
+        int minute;
+        String toneUri;
+        boolean enabled;
     }
 }

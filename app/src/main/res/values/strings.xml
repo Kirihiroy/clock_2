@@ -68,12 +68,6 @@
     <string name="alarm_channel_name">Будильник</string>
     <string name="alarm_channel_description">Звонки активных будильников</string>
 
-    <string name="repeat_once">Однократно</string>
-    <string name="repeat_every_day">Каждый день</string>
-    <string name="repeat_weekdays">Будние дни</string>
-    <string name="repeat_weekends">Выходные</string>
-    <string name="notification_permission_denied">Уведомления запрещены — будильник может не сработать на заблокированном экране</string>
-
     <string-array name="timezones">
         <item>UTC</item>
         <item>Europe/Moscow</item>
