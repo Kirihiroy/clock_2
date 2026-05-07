@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.Switch;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -23,7 +23,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner timeZoneSpinner;
     private Spinner alarmToneSpinner;
     private Spinner difficultySpinner;
-    private Switch themeSwitch;
+    private SwitchMaterial themeSwitch;
     private final List<String> alarmToneUris = new ArrayList<>();
 
     @Override
@@ -62,10 +62,12 @@ public class SettingsActivity extends AppCompatActivity {
                 do {
                     int position = cursor.getPosition();
                     Uri uri = ringtoneManager.getRingtoneUri(position);
-                    if (uri != null) {
-                        alarmToneUris.add(uri.toString());
-                        alarmToneTitles.add(ringtoneManager.getRingtone(position).getTitle(this));
-                    }
+                    if (uri == null) continue;
+                    // getRingtone() может вернуть null если файл недоступен → NPE
+                    android.media.Ringtone ringtone = ringtoneManager.getRingtone(position);
+                    if (ringtone == null) continue;
+                    alarmToneUris.add(uri.toString());
+                    alarmToneTitles.add(ringtone.getTitle(this));
                 } while (cursor.moveToNext());
             }
         } finally {
@@ -110,7 +112,8 @@ public class SettingsActivity extends AppCompatActivity {
 
         int savedDifficulty = getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
                 .getInt(AlarmActivity.KEY_DIFFICULTY, 1);
-        difficultySpinner.setSelection(savedDifficulty - 1);
+        int diffIndex = Math.max(0, Math.min(savedDifficulty - 1, difficultySpinner.getCount() - 1));
+        difficultySpinner.setSelection(diffIndex);
     }
 
     private void saveSettings() {

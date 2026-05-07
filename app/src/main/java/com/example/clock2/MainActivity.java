@@ -40,6 +40,12 @@ public class MainActivity extends AppCompatActivity {
     private final List<TextView> worldTimeClock = new ArrayList<>();
     private final List<TextView> worldTimeOffsetViews = new ArrayList<>();
 
+    // Кэшируем форматтеры: создание SimpleDateFormat — дорогая операция,
+    // а updateMainClock() вызывается каждую секунду
+    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, d MMM", Locale.getDefault());
+    private final SimpleDateFormat worldTimeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
     private SharedPreferences preferences;
     private TextView mainTimeText;
     private TextView mainDateText;
@@ -102,14 +108,12 @@ public class MainActivity extends AppCompatActivity {
         TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
         Date now = new Date();
 
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
         timeFormat.setTimeZone(homeZone);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, d MMM", Locale.getDefault());
         dateFormat.setTimeZone(homeZone);
 
         mainTimeText.setText(timeFormat.format(now));
-        mainDateText.setText(getString(R.string.home_clock_label, readableCityName(homeZoneId), dateFormat.format(now)));
+        mainDateText.setText(getString(R.string.home_clock_label,
+                readableCityName(homeZoneId), dateFormat.format(now)));
     }
 
     private void showAddWorldTimeDialog() {
@@ -177,12 +181,11 @@ public class MainActivity extends AppCompatActivity {
         String homeZoneId = preferences.getString(KEY_TIMEZONE, "Europe/Moscow");
         TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
         Date now = new Date();
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
         for (int i = 0; i < worldTimeZones.size() && i < worldTimeClock.size(); i++) {
             TimeZone zone = TimeZone.getTimeZone(worldTimeZones.get(i));
-            timeFormat.setTimeZone(zone);
-            worldTimeClock.get(i).setText(timeFormat.format(now));
+            worldTimeFormat.setTimeZone(zone);
+            worldTimeClock.get(i).setText(worldTimeFormat.format(now));
             worldTimeOffsetViews.get(i).setText(getString(R.string.today_offset_format,
                     formatOffsetFromHome(homeZone, zone, now.getTime())));
         }
