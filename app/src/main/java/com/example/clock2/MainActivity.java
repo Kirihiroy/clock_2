@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMainClock() {
-        String homeZoneId = preferences.getString(KEY_TIMEZONE, "Europe/Moscow");
+        String homeZoneId = preferences.getString(KEY_TIMEZONE, TimeZone.getDefault().getID());
         TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
         Date now = new Date();
 
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void tickWorldTimeCards() {
-        String homeZoneId = preferences.getString(KEY_TIMEZONE, "Europe/Moscow");
+        String homeZoneId = preferences.getString(KEY_TIMEZONE, TimeZone.getDefault().getID());
         TimeZone homeZone = TimeZone.getTimeZone(homeZoneId);
         Date now = new Date();
 
