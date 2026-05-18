@@ -26,6 +26,15 @@ public class AlarmReceiver extends BroadcastReceiver {
         // Запускаем звонок будильника
         AlarmRingingService.start(context, alarmId, toneUri);
 
+        // Прямой запуск экрана будильника — надёжнее fullScreenIntent,
+        // который может не сработать если экран включён или нет разрешения USE_FULL_SCREEN_INTENT.
+        // setAlarmClock() даёт приложению право запускать активити из фона.
+        Intent ringIntent = new Intent(context, AlarmRingActivity.class);
+        ringIntent.putExtra(AlarmActivity.KEY_ALARM_ID, alarmId);
+        ringIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
+        ringIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(ringIntent);
+
         if (repeatDays != null && repeatDays.length > 0) {
             // Повторяющийся будильник: сразу планируем следующее срабатывание
             rescheduleRepeating(context, intent, alarmId, hour, minute, repeatDays);
