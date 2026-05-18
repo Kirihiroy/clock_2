@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -92,7 +93,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void restoreSettings() {
         String[] timezones = getResources().getStringArray(R.array.timezones);
-        String savedTz = preferences.getString(MainActivity.KEY_TIMEZONE, timezones[0]);
+        String savedTz = preferences.getString(MainActivity.KEY_TIMEZONE, TimeZone.getDefault().getID());
         int index = 0;
         for (int i = 0; i < timezones.length; i++) {
             if (timezones[i].equals(savedTz)) {
