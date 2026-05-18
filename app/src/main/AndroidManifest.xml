@@ -22,7 +22,9 @@
         <activity
             android:name=".AlarmRingActivity"
             android:excludeFromRecents="true"
-            android:exported="false" />
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
 
         <service
             android:name=".AlarmRingingService"
