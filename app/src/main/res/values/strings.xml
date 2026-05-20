@@ -74,6 +74,26 @@
     <string name="repeat_weekends">Выходные</string>
     <string name="notification_permission_denied">Уведомления запрещены — будильник может не сработать на заблокированном экране</string>
 
+    <string name="device_section_title">Устройство CatClock</string>
+    <string name="device_status_not_paired">Устройство не подключено</string>
+    <string name="device_status_connecting">Подключение…</string>
+    <string name="device_status_connected">Подключено · прошивка %1$s · будильников: %2$d</string>
+    <string name="device_status_offline">Не в сети (последний MAC: %1$s)</string>
+    <string name="device_connect_button">Подключить устройство</string>
+    <string name="device_disconnect_button">Отключить устройство</string>
+    <string name="device_sync_now_button">Синхронизировать сейчас</string>
+    <string name="device_sync_success">Данные отправлены на устройство</string>
+    <string name="device_sync_failed">Не удалось синхронизировать: %1$s</string>
+    <string name="device_scan_title">Поиск CatClock</string>
+    <string name="device_scan_hint">Включите устройство и подождите несколько секунд…</string>
+    <string name="device_scan_empty">Устройства не найдены</string>
+    <string name="device_permission_required">Нужны разрешения Bluetooth</string>
+    <string name="device_bluetooth_off">Включите Bluetooth</string>
+    <string name="device_location_required">Включите геолокацию — без неё поиск Bluetooth-устройств не работает</string>
+    <string name="device_ble_not_supported">BLE не поддерживается на этом устройстве</string>
+    <string name="device_disconnected_message">Устройство отключено</string>
+    <string name="device_unknown_name">Без имени</string>
+
     <string-array name="timezones">
         <item>UTC</item>
         <item>Europe/Moscow</item>

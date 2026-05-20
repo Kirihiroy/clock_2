@@ -65,13 +65,54 @@
             android:layout_marginBottom="24dp"
             android:entries="@array/difficulty_levels" />
 
-        <Switch
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_theme"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             android:text="@string/dark_theme_label"
             android:textColor="@color/main_time_color" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/device_section_title"
+            android:textColor="@color/main_time_color"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_device_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/device_status_not_paired"
+            android:textColor="@color/main_time_color"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btn_device_connect"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/device_connect_button" />
+
+        <Button
+            android:id="@+id/btn_device_sync"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/device_sync_now_button"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_device_disconnect"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="24dp"
+            android:text="@string/device_disconnect_button"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_save_settings"

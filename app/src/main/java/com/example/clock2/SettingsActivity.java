@@ -1,14 +1,18 @@
 package com.example.clock2;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,6 +31,14 @@ public class SettingsActivity extends AppCompatActivity {
     private SwitchMaterial themeSwitch;
     private final List<String> alarmToneUris = new ArrayList<>();
 
+    private TextView deviceStatusText;
+    private Button   deviceConnectBtn;
+    private Button   deviceSyncBtn;
+    private Button   deviceDisconnectBtn;
+
+    private final CatClockBleManager.StatusListener statusListener =
+            (status, connected) -> updateDeviceUi(status, connected);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         preferences = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
@@ -44,17 +56,93 @@ public class SettingsActivity extends AppCompatActivity {
         themeSwitch = findViewById(R.id.switch_theme);
         Button saveButton = findViewById(R.id.btn_save_settings);
 
+        deviceStatusText    = findViewById(R.id.tv_device_status);
+        deviceConnectBtn    = findViewById(R.id.btn_device_connect);
+        deviceSyncBtn       = findViewById(R.id.btn_device_sync);
+        deviceDisconnectBtn = findViewById(R.id.btn_device_disconnect);
+
         findViewById(R.id.nav_alarm).setOnClickListener(v -> startActivity(new Intent(this, AlarmActivity.class)));
         findViewById(R.id.nav_world_time).setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
+
+        deviceConnectBtn.setOnClickListener(v ->
+                startActivity(new Intent(this, DeviceConnectionActivity.class)));
+        deviceSyncBtn.setOnClickListener(v -> {
+            Toast.makeText(this, R.string.device_status_connecting, Toast.LENGTH_SHORT).show();
+            CatClockBleManager.get(this).connectAndSyncAll(new CatClockBleManager.Callback() {
+                @Override public void onSuccess() {
+                    runOnUiThread(() -> Toast.makeText(SettingsActivity.this,
+                            R.string.device_sync_success, Toast.LENGTH_SHORT).show());
+                }
+                @Override public void onError(String message) {
+                    runOnUiThread(() -> Toast.makeText(SettingsActivity.this,
+                            getString(R.string.device_sync_failed, message), Toast.LENGTH_LONG).show());
+                }
+            });
+        });
+        deviceDisconnectBtn.setOnClickListener(v -> {
+            CatClockBleManager mgr = CatClockBleManager.get(this);
+            mgr.disconnect();
+            mgr.setSavedDeviceAddress(null);
+            DeviceSyncWorker.cancelPeriodic(this);  // больше нечего синхронизировать
+            Toast.makeText(this, R.string.device_disconnected_message, Toast.LENGTH_SHORT).show();
+            updateDeviceUi(null, false);
+        });
 
         setupAlarmToneSpinner();
         restoreSettings();
         saveButton.setOnClickListener(v -> saveSettings());
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        mgr.registerStatusListener(statusListener);
+        // Пока экран открыт — держим соединение, чтобы виден был живой статус.
+        mgr.setKeepConnected(true);
+        if (mgr.hasPairedDevice() && !mgr.isConnected()) {
+            mgr.connectAndSyncAll(null);
+        }
+        updateDeviceUi(mgr.getLastStatus(), mgr.isConnected());
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        mgr.unregisterStatusListener(statusListener);
+        // Отпускаем соединение (внутри setKeepConnected(false) вызовется disconnect).
+        mgr.setKeepConnected(false);
+    }
+
+    private void updateDeviceUi(@androidx.annotation.Nullable CatClockBleManager.DeviceStatus status,
+                                 boolean connected) {
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        String mac = mgr.getSavedDeviceAddress();
+        if (mac == null) {
+            deviceStatusText.setText(R.string.device_status_not_paired);
+            deviceSyncBtn.setVisibility(View.GONE);
+            deviceDisconnectBtn.setVisibility(View.GONE);
+            return;
+        }
+        deviceSyncBtn.setVisibility(View.VISIBLE);
+        deviceDisconnectBtn.setVisibility(View.VISIBLE);
+        if (connected && status != null) {
+            deviceStatusText.setText(getString(R.string.device_status_connected,
+                    status.firmware, status.alarmsCount));
+        } else if (connected) {
+            deviceStatusText.setText(R.string.device_status_connecting);
+        } else {
+            deviceStatusText.setText(getString(R.string.device_status_offline, mac));
+        }
+    }
+
     private void setupAlarmToneSpinner() {
         List<String> alarmToneTitles = new ArrayList<>();
-        RingtoneManager ringtoneManager = new RingtoneManager(this);
+        // Важно: используем конструктор (Context), а не (Activity). Activity-вариант
+        // регистрирует курсор как managed cursor, и activity пытается requery после restart,
+        // что падает с StaleDataException, если мы курсор уже закрыли.
+        RingtoneManager ringtoneManager = new RingtoneManager((Context) this);
         ringtoneManager.setType(RingtoneManager.TYPE_ALARM);
         Cursor cursor = ringtoneManager.getCursor();
 
@@ -142,6 +230,11 @@ public class SettingsActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(
                 isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
         );
+
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        if (mgr.hasPairedDevice()) {
+            mgr.syncTime(null);
+        }
 
         finish();
     }

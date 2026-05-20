@@ -83,12 +83,25 @@ public class MainActivity extends AppCompatActivity {
         loadWorldTimeZones();
         updateMainClock();
         buildWorldTimeCards();
+
+        // Если устройство CatClock привязано — гарантируем, что периодическая
+        // фоновая синхронизация запланирована (идемпотентно).
+        if (CatClockBleManager.get(this).hasPairedDevice()) {
+            DeviceSyncWorker.schedulePeriodic(this);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         clockHandler.post(clockTick);
+        // Регулярно подсинхронизируем время устройства CatClock, чтобы оно
+        // получало актуальный UTC-offset (важно после перехода на летнее/зимнее
+        // время — иначе часы и будильники на устройстве уйдут на час).
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        if (mgr.hasPairedDevice()) {
+            mgr.syncTime(null);
+        }
     }
 
     @Override

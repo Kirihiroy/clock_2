@@ -540,6 +540,11 @@ public class AlarmActivity extends AppCompatActivity {
                 .edit()
                 .putString(KEY_ALARMS_JSON, array.toString())
                 .apply();
+
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        if (mgr.hasPairedDevice()) {
+            mgr.syncAlarms(null);
+        }
     }
 
     // -----------------------------------------------------------------------

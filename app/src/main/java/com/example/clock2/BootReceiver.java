@@ -22,6 +22,13 @@ public class BootReceiver extends BroadcastReceiver {
             return;
         }
         rescheduleAlarms(context);
+
+        // После загрузки телефона устройство CatClock потеряло время — ставим
+        // разовую синхронизацию и (пере)запускаем периодическую.
+        if (CatClockBleManager.get(context).hasPairedDevice()) {
+            DeviceSyncWorker.requestOneShot(context);
+            DeviceSyncWorker.schedulePeriodic(context);
+        }
     }
 
     private void rescheduleAlarms(Context context) {

@@ -90,6 +90,11 @@ public class AlarmRingingService extends Service {
     public void onDestroy() {
         stopAlarmSound();
         releaseWakeLock();
+        // Будильник на телефоне остановлен — гасим звонок и на устройстве CatClock.
+        // Через WorkManager: доставка гарантирована, даже если процесс будет убит.
+        if (CatClockBleManager.get(this).hasPairedDevice()) {
+            DeviceSyncWorker.requestCommand(getApplicationContext(), "stop");
+        }
         super.onDestroy();
     }
 
