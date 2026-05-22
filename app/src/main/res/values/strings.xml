@@ -50,6 +50,20 @@
         <item>Средний (ответ ≤ 50)</item>
         <item>Сложный (ответ ≤ 100)</item>
     </string-array>
+    <string name="equation_count_label">Сколько примеров решать</string>
+    <string-array name="equation_counts">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+    </string-array>
+    <string name="fade_in_label">Плавное нарастание звука</string>
     <string name="add_world_time_short">Добавить</string>
     <string name="nav_alarm">Будильник</string>
     <string name="nav_world_time">Мировое время</string>
@@ -63,8 +77,11 @@
     <string name="enter_answer">Введите ответ</string>
     <string name="invalid_answer">Введите число</string>
     <string name="wrong_answer">Неверно, попробуйте ещё раз</string>
+    <string name="answer_correct">Верно!</string>
+    <string name="puzzle_progress">Решено: %1$d из %2$d</string>
     <string name="alarm_notification_title">Будильник звонит</string>
     <string name="alarm_notification_text">Откройте экран, чтобы решить пример и выключить звук</string>
+    <string name="alarm_prealarm_text">Будильник скоро зазвонит</string>
     <string name="alarm_channel_name">Будильник</string>
     <string name="alarm_channel_description">Звонки активных будильников</string>
 

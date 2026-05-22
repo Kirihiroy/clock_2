@@ -1,7 +1,5 @@
 package com.example.clock2;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -17,71 +15,49 @@ public class AlarmReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
 
-        String toneUri    = intent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI);
-        int    alarmId    = intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1);
-        int    hour       = intent.getIntExtra(AlarmActivity.KEY_ALARM_HOUR, 0);
-        int    minute     = intent.getIntExtra(AlarmActivity.KEY_ALARM_MINUTE, 0);
-        int[]  repeatDays = intent.getIntArrayExtra(AlarmActivity.KEY_REPEAT_DAYS);
+        String  toneUri    = intent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI);
+        int     alarmId    = intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1);
+        int     hour       = intent.getIntExtra(AlarmActivity.KEY_ALARM_HOUR, 0);
+        int     minute     = intent.getIntExtra(AlarmActivity.KEY_ALARM_MINUTE, 0);
+        int[]   repeatDays = intent.getIntArrayExtra(AlarmActivity.KEY_REPEAT_DAYS);
+        boolean isPre      = intent.getBooleanExtra(AlarmScheduler.KEY_PRE_ALARM, false);
 
-        // Запускаем звонок будильника
-        AlarmRingingService.start(context, alarmId, toneUri);
+        // Пред-сигнал: за минуту до будильника — запускаем тихий звук с плавным
+        // нарастанием. Экран с примером не показываем и повтор не планируем —
+        // это сделает основной сигнал в момент T.
+        if (isPre) {
+            AlarmRingingService.startFadeIn(context, alarmId, toneUri);
+            return;
+        }
 
-        // Прямой запуск экрана будильника — надёжнее fullScreenIntent,
-        // который может не сработать если экран включён или нет разрешения USE_FULL_SCREEN_INTENT.
-        // setAlarmClock() даёт приложению право запускать активити из фона.
-        Intent ringIntent = new Intent(context, AlarmRingActivity.class);
-        ringIntent.putExtra(AlarmActivity.KEY_ALARM_ID, alarmId);
-        ringIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
-        ringIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(ringIntent);
+        // Основной сигнал. Если будильник уже выключили во время фазы нарастания,
+        // повторно не звоним — но повтор/однократность обрабатываем как обычно.
+        if (!AlarmScheduler.consumeRecentDismiss(context, alarmId)) {
+            AlarmRingingService.start(context, alarmId, toneUri);
+
+            // Прямой запуск экрана будильника — надёжнее fullScreenIntent,
+            // который может не сработать если экран включён или нет разрешения
+            // USE_FULL_SCREEN_INTENT. setAlarmClock() даёт право запускать
+            // активити из фона.
+            Intent ringIntent = new Intent(context, AlarmRingActivity.class);
+            ringIntent.putExtra(AlarmActivity.KEY_ALARM_ID, alarmId);
+            ringIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
+            ringIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            context.startActivity(ringIntent);
+        }
 
         if (repeatDays != null && repeatDays.length > 0) {
-            // Повторяющийся будильник: сразу планируем следующее срабатывание
-            rescheduleRepeating(context, intent, alarmId, hour, minute, repeatDays);
+            // Повторяющийся будильник: планируем следующее срабатывание
+            // (основной сигнал + пред-сигнал).
+            AlarmScheduler.schedule(context, alarmId, hour, minute, repeatDays, toneUri);
         } else {
             // Однократный будильник: помечаем как выключенный в SharedPreferences,
-            // чтобы при открытии AlarmActivity карточка отображалась корректно
+            // чтобы при открытии AlarmActivity карточка отображалась корректно.
             markAlarmDisabled(context, alarmId);
         }
     }
 
     // -----------------------------------------------------------------------
-
-    private void rescheduleRepeating(Context context, Intent originalIntent,
-                                      int alarmId, int hour, int minute, int[] repeatDays) {
-        AlarmManager alarmManager =
-                (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager == null) return;
-
-        long nextMillis = AlarmActivity.nextTriggerMillis(hour, minute, repeatDays);
-
-        // Создаём свежий Intent, а не переиспользуем полученный broadcast-intent:
-        // фреймворк может его модифицировать, добавить служебные флаги,
-        // не установить компонент — всё это ломает PendingIntent.
-        String toneUri = originalIntent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI);
-        Intent freshIntent = new Intent(context, AlarmReceiver.class);
-        freshIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
-        freshIntent.putExtra(AlarmActivity.KEY_ALARM_ID,       alarmId);
-        freshIntent.putExtra(AlarmActivity.KEY_ALARM_HOUR,     hour);
-        freshIntent.putExtra(AlarmActivity.KEY_ALARM_MINUTE,   minute);
-        freshIntent.putExtra(AlarmActivity.KEY_REPEAT_DAYS,    repeatDays);
-
-        PendingIntent triggerIntent = PendingIntent.getBroadcast(
-                context, alarmId, freshIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        PendingIntent showIntent = PendingIntent.getActivity(
-                context, alarmId, new Intent(context, AlarmActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        try {
-            alarmManager.setAlarmClock(
-                    new AlarmManager.AlarmClockInfo(nextMillis, showIntent),
-                    triggerIntent);
-        } catch (SecurityException ignored) {
-            // SCHEDULE_EXACT_ALARM не выдан — перепланировать не удастся
-        }
-    }
 
     private void markAlarmDisabled(Context context, int alarmId) {
         if (alarmId < 0) return;

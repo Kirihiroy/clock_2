@@ -13,8 +13,11 @@ import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
+import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -23,22 +26,45 @@ import java.io.IOException;
 
 public class AlarmRingingService extends Service {
 
-    public static final String ACTION_START   = "com.example.clock2.action.START_ALARM";
-    public static final String ACTION_DISMISS = "com.example.clock2.action.DISMISS_ALARM";
+    public static final String ACTION_START      = "com.example.clock2.action.START_ALARM";
+    public static final String ACTION_START_FADE = "com.example.clock2.action.START_ALARM_FADE";
+    public static final String ACTION_DISMISS    = "com.example.clock2.action.DISMISS_ALARM";
 
     private static final String CHANNEL_ID      = "alarm_ringing_channel";
     private static final int    NOTIFICATION_ID = 1107;
 
+    // Плавное нарастание: 60 с от тихого старта до полной громкости.
+    private static final long  FADE_DURATION_MS = 60_000L;
+    private static final long  FADE_TICK_MS     = 1_000L;
+    private static final float MIN_VOLUME       = 0.05f;
+
     private MediaPlayer          mediaPlayer;
     private PowerManager.WakeLock wakeLock;
+
+    private int     currentAlarmId = -1;
+    private boolean fading;
+    private long    fadeStartElapsed;
+    @Nullable private Handler  fadeHandler;
+    @Nullable private Runnable fadeRunnable;
 
     // -----------------------------------------------------------------------
     // Статические хелперы — единственный способ запустить/остановить сервис
     // -----------------------------------------------------------------------
 
+    /** Запуск будильника на полной громкости (момент срабатывания). */
     public static void start(Context context, int alarmId, @Nullable String toneUri) {
+        dispatch(context, ACTION_START, alarmId, toneUri);
+    }
+
+    /** Запуск фазы нарастания за минуту до будильника: тихий звук с разгоном. */
+    public static void startFadeIn(Context context, int alarmId, @Nullable String toneUri) {
+        dispatch(context, ACTION_START_FADE, alarmId, toneUri);
+    }
+
+    private static void dispatch(Context context, String action, int alarmId,
+                                 @Nullable String toneUri) {
         Intent intent = new Intent(context, AlarmRingingService.class);
-        intent.setAction(ACTION_START);
+        intent.setAction(action);
         intent.putExtra(AlarmActivity.KEY_ALARM_ID, alarmId);
         intent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -70,31 +96,44 @@ public class AlarmRingingService extends Service {
             return START_NOT_STICKY;
         }
 
-        int    alarmId = intent != null ? intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1)          : -1;
+        int    alarmId = intent != null ? intent.getIntExtra(AlarmActivity.KEY_ALARM_ID, -1)      : -1;
         String toneUri = intent != null ? intent.getStringExtra(AlarmActivity.KEY_ALARM_TONE_URI) : null;
+        currentAlarmId = alarmId;
 
-        Notification notification = createAlarmNotification(alarmId, toneUri);
+        boolean preAlarm = ACTION_START_FADE.equals(action);
+
+        Notification notification = createAlarmNotification(alarmId, toneUri, preAlarm);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         } else {
             startForeground(NOTIFICATION_ID, notification);
         }
-
         acquireWakeLock();
-        startAlarmSound(toneUri);
+
+        if (preAlarm) {
+            // Фаза нарастания: запускаем тихий звук с разгоном.
+            startAlarmSound(toneUri, true);
+        } else if (mediaPlayer != null && fading) {
+            // Звук уже играет с нарастанием — момент T: мгновенно на полную громкость.
+            stopFadeRamp();
+            fading = false;
+            try { mediaPlayer.setVolume(1f, 1f); } catch (IllegalStateException ignored) {}
+        } else if (mediaPlayer == null) {
+            // Нарастание было выключено/пропущено — играем сразу на полной громкости.
+            startAlarmSound(toneUri, false);
+        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        stopFadeRamp();
         stopAlarmSound();
         releaseWakeLock();
-        // Будильник на телефоне остановлен — гасим звонок и на устройстве CatClock.
-        // Через WorkManager: доставка гарантирована, даже если процесс будет убит.
-        if (CatClockBleManager.get(this).hasPairedDevice()) {
-            DeviceSyncWorker.requestCommand(getApplicationContext(), "stop");
-        }
+        // Помечаем будильник выключенным: если выключение случилось во время
+        // фазы нарастания, основной сигнал в момент T не зазвонит повторно.
+        AlarmScheduler.markDismissed(this, currentAlarmId);
         super.onDestroy();
     }
 
@@ -108,7 +147,8 @@ public class AlarmRingingService extends Service {
     // Уведомление
     // -----------------------------------------------------------------------
 
-    private Notification createAlarmNotification(int alarmId, @Nullable String toneUri) {
+    private Notification createAlarmNotification(int alarmId, @Nullable String toneUri,
+                                                 boolean preAlarm) {
         ensureNotificationChannel();
 
         Intent openAlarmIntent = new Intent(this, AlarmRingActivity.class);
@@ -118,22 +158,29 @@ public class AlarmRingingService extends Service {
 
         // Используем alarmId как request code, чтобы разные будильники не затирали друг друга
         int reqCode = alarmId >= 0 ? alarmId : 3001;
-        PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
+        PendingIntent contentPendingIntent = PendingIntent.getActivity(
                 this, reqCode, openAlarmIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(getString(R.string.alarm_notification_title))
-                .setContentText(getString(R.string.alarm_notification_text))
+                .setContentText(getString(preAlarm
+                        ? R.string.alarm_prealarm_text
+                        : R.string.alarm_notification_text))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                .setContentIntent(fullScreenPendingIntent)
-                .setFullScreenIntent(fullScreenPendingIntent, true)
-                .build();
+                .setContentIntent(contentPendingIntent);
+
+        // В фазе нарастания НЕ задаём fullScreenIntent: иначе на заблокированном
+        // экране окно с примером открылось бы за минуту до будильника.
+        if (!preAlarm) {
+            builder.setFullScreenIntent(contentPendingIntent, true);
+        }
+        return builder.build();
     }
 
     private void ensureNotificationChannel() {
@@ -156,7 +203,7 @@ public class AlarmRingingService extends Service {
     // Звук будильника — исправлен race condition
     // -----------------------------------------------------------------------
 
-    private void startAlarmSound(@Nullable String uriString) {
+    private void startAlarmSound(@Nullable String uriString, boolean fade) {
         Uri alarmUri = (uriString == null || uriString.isEmpty())
                 ? RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 : Uri.parse(uriString);
@@ -165,6 +212,8 @@ public class AlarmRingingService extends Service {
         }
 
         stopAlarmSound();
+        stopFadeRamp();
+        fading = fade;
 
         // Сохраняем ссылку локально ДО асинхронного prepare.
         // В onPrepared проверяем, что player не был заменён stopAlarmSound() за это время.
@@ -181,9 +230,17 @@ public class AlarmRingingService extends Service {
             player.setDataSource(this, alarmUri);
             player.setOnPreparedListener(mp -> {
                 // Защита от race condition: запускаем только если это актуальный плеер
-                if (mp == mediaPlayer) {
+                if (mp != mediaPlayer) return;
+                try {
+                    if (fading) {
+                        mp.setVolume(MIN_VOLUME, MIN_VOLUME);
+                        fadeStartElapsed = SystemClock.elapsedRealtime();
+                        startFadeRamp();
+                    } else {
+                        mp.setVolume(1f, 1f);
+                    }
                     mp.start();
-                }
+                } catch (IllegalStateException ignored) {}
             });
             player.prepareAsync();
         } catch (IOException e) {
@@ -209,6 +266,34 @@ public class AlarmRingingService extends Service {
     }
 
     // -----------------------------------------------------------------------
+    // Плавное нарастание громкости
+    // -----------------------------------------------------------------------
+
+    private void startFadeRamp() {
+        stopFadeRamp();
+        fadeHandler = new Handler(Looper.getMainLooper());
+        fadeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mediaPlayer == null || !fading) return;
+                long  elapsed = SystemClock.elapsedRealtime() - fadeStartElapsed;
+                float frac    = Math.max(0f, Math.min(1f, elapsed / (float) FADE_DURATION_MS));
+                float vol     = MIN_VOLUME + (1f - MIN_VOLUME) * frac;
+                try { mediaPlayer.setVolume(vol, vol); } catch (IllegalStateException ignored) {}
+                if (frac >= 1f) { fading = false; return; }
+                if (fadeHandler != null) fadeHandler.postDelayed(this, FADE_TICK_MS);
+            }
+        };
+        fadeHandler.post(fadeRunnable);
+    }
+
+    private void stopFadeRamp() {
+        if (fadeHandler != null && fadeRunnable != null) {
+            fadeHandler.removeCallbacks(fadeRunnable);
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // WakeLock — не даём ЦП уснуть пока играет будильник
     // -----------------------------------------------------------------------
 
@@ -228,6 +313,7 @@ public class AlarmRingingService extends Service {
     }
 
     private void stopSelfSafely() {
+        stopFadeRamp();
         stopAlarmSound();
         releaseWakeLock();
         stopForeground(STOP_FOREGROUND_REMOVE);

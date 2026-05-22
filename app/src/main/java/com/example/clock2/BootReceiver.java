@@ -1,7 +1,5 @@
 package com.example.clock2;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -36,10 +34,6 @@ public class BootReceiver extends BroadcastReceiver {
                 AlarmActivity.PREFS_NAME, Context.MODE_PRIVATE);
         String json = prefs.getString(AlarmActivity.KEY_ALARMS_JSON, "[]");
 
-        AlarmManager alarmManager =
-                (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager == null) return;
-
         JSONArray array;
         try {
             array = new JSONArray(json);
@@ -68,30 +62,8 @@ public class BootReceiver extends BroadcastReceiver {
                     }
                 }
 
-                long triggerMillis = AlarmActivity.nextTriggerMillis(hour, minute, repeatDays);
-
-                Intent alarmIntent = new Intent(context, AlarmReceiver.class);
-                alarmIntent.putExtra(AlarmActivity.KEY_ALARM_TONE_URI, toneUri);
-                alarmIntent.putExtra(AlarmActivity.KEY_ALARM_ID,       id);
-                alarmIntent.putExtra(AlarmActivity.KEY_ALARM_HOUR,     hour);
-                alarmIntent.putExtra(AlarmActivity.KEY_ALARM_MINUTE,   minute);
-                alarmIntent.putExtra(AlarmActivity.KEY_REPEAT_DAYS,    repeatDays);
-
-                PendingIntent triggerIntent = PendingIntent.getBroadcast(
-                        context, id, alarmIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-                PendingIntent showIntent = PendingIntent.getActivity(
-                        context, id, new Intent(context, AlarmActivity.class),
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-                try {
-                    alarmManager.setAlarmClock(
-                            new AlarmManager.AlarmClockInfo(triggerMillis, showIntent),
-                            triggerIntent);
-                } catch (SecurityException ignored) {
-                    // SCHEDULE_EXACT_ALARM не выдан — пропускаем этот будильник
-                }
+                // Планирует основной сигнал и пред-сигнал (плавное нарастание).
+                AlarmScheduler.schedule(context, id, hour, minute, repeatDays, toneUri);
             } catch (JSONException ignored) {
                 // Один битый объект — пропускаем, остальные перепланируем
             }

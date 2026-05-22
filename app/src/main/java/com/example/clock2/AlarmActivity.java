@@ -1,9 +1,7 @@
 package com.example.clock2;
 
 import android.Manifest;
-import android.app.AlarmManager;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -57,6 +55,8 @@ public class AlarmActivity extends AppCompatActivity {
     public static final String KEY_ALARM_MINUTE   = "alarm_minute";
     public static final String KEY_REPEAT_DAYS    = "repeat_days";
     public static final String KEY_DIFFICULTY     = "puzzle_difficulty";
+    public static final String KEY_PUZZLE_COUNT   = "puzzle_count";
+    public static final String KEY_FADE_IN        = "fade_in_enabled";
     public static final String KEY_ALARMS_JSON    = "alarms_json";
 
     private static final int REQ_POST_NOTIFICATIONS = 1108;
@@ -74,7 +74,6 @@ public class AlarmActivity extends AppCompatActivity {
         R.id.tv_day_fri, R.id.tv_day_sat, R.id.tv_day_sun
     };
 
-    private AlarmManager alarmManager;
     private TextView     alarmStatusText;
     private LinearLayout alarmListLayout;
 
@@ -135,7 +134,6 @@ public class AlarmActivity extends AppCompatActivity {
         FloatingActionButton addAlarmButton = findViewById(R.id.fab_add_alarm);
         alarmStatusText = findViewById(R.id.tv_alarm_status);
         alarmListLayout = findViewById(R.id.layout_alarm_list);
-        alarmManager    = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         View worldTimeNav = findViewById(R.id.nav_world_time);
         View settingsNav  = findViewById(R.id.nav_settings);
@@ -304,45 +302,15 @@ public class AlarmActivity extends AppCompatActivity {
     // -----------------------------------------------------------------------
 
     private void scheduleAlarm(AlarmItem item) {
-        if (alarmManager == null) return;
-
-        int[]  repeatArr     = item.repeatDaysToIntArray();
-        long   triggerMillis = nextTriggerMillis(item.hour, item.minute, repeatArr);
-
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        intent.putExtra(KEY_ALARM_TONE_URI, item.toneUri);
-        intent.putExtra(KEY_ALARM_ID,       item.id);
-        intent.putExtra(KEY_ALARM_HOUR,     item.hour);
-        intent.putExtra(KEY_ALARM_MINUTE,   item.minute);
-        intent.putExtra(KEY_REPEAT_DAYS,    repeatArr);
-
-        PendingIntent triggerIntent = PendingIntent.getBroadcast(
-                this, item.id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        // setAlarmClock: система показывает иконку будильника и доставляет сигнал
-        // даже при агрессивной оптимизации батареи (Xiaomi, Samsung и др.)
-        PendingIntent showIntent = PendingIntent.getActivity(
-                this, item.id, new Intent(this, AlarmActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        try {
-            alarmManager.setAlarmClock(
-                    new AlarmManager.AlarmClockInfo(triggerMillis, showIntent),
-                    triggerIntent);
-        } catch (SecurityException e) {
+        boolean scheduled = AlarmScheduler.schedule(this, item.id, item.hour, item.minute,
+                item.repeatDaysToIntArray(), item.toneUri);
+        if (!scheduled) {
             Toast.makeText(this, R.string.request_exact_alarm_permission, Toast.LENGTH_LONG).show();
         }
     }
 
     private void cancelAlarm(AlarmItem item) {
-        if (alarmManager == null) return;
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(
-                this, item.id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        alarmManager.cancel(pi);
-        pi.cancel();
+        AlarmScheduler.cancel(this, item.id);
     }
 
     // -----------------------------------------------------------------------

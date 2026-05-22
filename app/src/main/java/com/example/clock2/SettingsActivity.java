@@ -28,6 +28,8 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner timeZoneSpinner;
     private Spinner alarmToneSpinner;
     private Spinner difficultySpinner;
+    private Spinner equationCountSpinner;
+    private SwitchMaterial fadeInSwitch;
     private SwitchMaterial themeSwitch;
     private final List<String> alarmToneUris = new ArrayList<>();
 
@@ -53,6 +55,8 @@ public class SettingsActivity extends AppCompatActivity {
         timeZoneSpinner = findViewById(R.id.spinner_timezone);
         alarmToneSpinner = findViewById(R.id.spinner_alarm_tone_settings);
         difficultySpinner = findViewById(R.id.spinner_difficulty);
+        equationCountSpinner = findViewById(R.id.spinner_equation_count);
+        fadeInSwitch = findViewById(R.id.switch_fade_in);
         themeSwitch = findViewById(R.id.switch_theme);
         Button saveButton = findViewById(R.id.btn_save_settings);
 
@@ -199,10 +203,17 @@ public class SettingsActivity extends AppCompatActivity {
             alarmToneSpinner.setSelection(toneIndex);
         }
 
-        int savedDifficulty = getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
-                .getInt(AlarmActivity.KEY_DIFFICULTY, 1);
+        SharedPreferences alarmPrefs = getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE);
+
+        int savedDifficulty = alarmPrefs.getInt(AlarmActivity.KEY_DIFFICULTY, 1);
         int diffIndex = Math.max(0, Math.min(savedDifficulty - 1, difficultySpinner.getCount() - 1));
         difficultySpinner.setSelection(diffIndex);
+
+        int savedCount = alarmPrefs.getInt(AlarmActivity.KEY_PUZZLE_COUNT, 1);
+        int countIndex = Math.max(0, Math.min(savedCount - 1, equationCountSpinner.getCount() - 1));
+        equationCountSpinner.setSelection(countIndex);
+
+        fadeInSwitch.setChecked(alarmPrefs.getBoolean(AlarmActivity.KEY_FADE_IN, true));
     }
 
     private void saveSettings() {
@@ -222,9 +233,12 @@ public class SettingsActivity extends AppCompatActivity {
                 .apply();
 
         int selectedDifficulty = difficultySpinner.getSelectedItemPosition() + 1;
+        int selectedCount      = equationCountSpinner.getSelectedItemPosition() + 1;
         getSharedPreferences(AlarmActivity.PREFS_NAME, MODE_PRIVATE)
                 .edit()
                 .putInt(AlarmActivity.KEY_DIFFICULTY, selectedDifficulty)
+                .putInt(AlarmActivity.KEY_PUZZLE_COUNT, selectedCount)
+                .putBoolean(AlarmActivity.KEY_FADE_IN, fadeInSwitch.isChecked())
                 .apply();
 
         AppCompatDelegate.setDefaultNightMode(
