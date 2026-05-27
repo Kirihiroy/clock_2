@@ -116,7 +116,9 @@ public class AlarmRingingService extends Service {
             } else {
                 startForeground(NOTIFICATION_ID, notification);
             }
-        } catch (SecurityException | RuntimeException e) {
+        } catch (RuntimeException e) {
+            // RuntimeException покрывает в том числе SecurityException (нет POST_NOTIFICATIONS
+            // на Android 13+) и ForegroundServiceStartNotAllowedException (Android 14+).
             stopSelf();
             return START_NOT_STICKY;
         }

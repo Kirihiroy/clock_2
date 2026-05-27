@@ -82,6 +82,9 @@
     <string name="wrong_answer">Неверно, попробуйте ещё раз</string>
     <string name="answer_correct">Верно!</string>
     <string name="puzzle_progress">Решено: %1$d из %2$d</string>
+    <string name="countdown_hours_minutes">через %1$dч %2$dмин</string>
+    <string name="countdown_minutes">через %1$dмин</string>
+    <string name="countdown_less_minute">менее минуты</string>
     <string name="alarm_notification_title">Будильник звонит</string>
     <string name="alarm_notification_text">Откройте экран, чтобы решить пример и выключить звук</string>
     <string name="alarm_prealarm_text">Будильник скоро зазвонит</string>
