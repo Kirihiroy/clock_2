@@ -148,9 +148,9 @@ public class SettingsActivity extends AppCompatActivity {
         // что падает с StaleDataException, если мы курсор уже закрыли.
         RingtoneManager ringtoneManager = new RingtoneManager((Context) this);
         ringtoneManager.setType(RingtoneManager.TYPE_ALARM);
-        Cursor cursor = ringtoneManager.getCursor();
 
-        try {
+        // try-with-resources гарантирует close() даже если moveToFirst()/getCount() бросят.
+        try (Cursor cursor = ringtoneManager.getCursor()) {
             if (cursor != null && cursor.moveToFirst()) {
                 do {
                     int position = cursor.getPosition();
@@ -163,10 +163,9 @@ public class SettingsActivity extends AppCompatActivity {
                     alarmToneTitles.add(ringtone.getTitle(this));
                 } while (cursor.moveToNext());
             }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+        } catch (Exception ignored) {
+            // RingtoneManager может бросать на устройствах с битым медиа-индексом —
+            // не валим экран настроек целиком, ниже добавим хотя бы дефолт.
         }
 
         if (alarmToneTitles.isEmpty()) {

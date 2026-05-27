@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 /**
  * Планирование будильников через {@link AlarmManager}: основной сигнал в момент T
@@ -64,6 +65,13 @@ public final class AlarmScheduler {
                                    int[] repeatDays, String toneUri) {
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return false;
+
+        // На Android 12+ setAlarmClock требует разрешения SCHEDULE_EXACT_ALARM,
+        // которое пользователь может отозвать в настройках. Проверяем явно, не
+        // полагаясь на SecurityException — система иначе тихо отклонит вызов.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
+            return false;
+        }
 
         long triggerMillis = AlarmActivity.nextTriggerMillis(hour, minute, repeatDays);
 
