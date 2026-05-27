@@ -27,6 +27,8 @@
     <string name="cancel">Отмена</string>
     <string name="done">Готово</string>
     <string name="new_alarm">Новый сигнал</string>
+    <string name="alarm_label_hint">Название будильника</string>
+    <string name="repeat_label">Повтор по дням недели</string>
     <string name="ring_tomorrow_hint">Звонок через 1 день</string>
     <string name="alarm_deleted_message">Будильник %1$s удален</string>
 
@@ -74,6 +76,7 @@
     <string name="math_example_format">%1$d + %2$d = ?</string>
     <string name="answer_hint">Ваш ответ</string>
     <string name="dismiss_alarm_button">Выключить будильник</string>
+    <string name="snooze_button">Отложить на 10 мин</string>
     <string name="enter_answer">Введите ответ</string>
     <string name="invalid_answer">Введите число</string>
     <string name="wrong_answer">Неверно, попробуйте ещё раз</string>
