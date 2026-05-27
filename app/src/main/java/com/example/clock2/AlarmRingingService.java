@@ -1,12 +1,15 @@
 package com.example.clock2;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
@@ -21,6 +24,7 @@ import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 
@@ -103,11 +107,18 @@ public class AlarmRingingService extends Service {
         boolean preAlarm = ACTION_START_FADE.equals(action);
 
         Notification notification = createAlarmNotification(alarmId, toneUri, preAlarm);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
+        // На Android 13+ без POST_NOTIFICATIONS уведомление foreground-сервиса не покажется,
+        // а в редких сценариях startForeground может бросить SecurityException — оборачиваем.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (SecurityException | RuntimeException e) {
+            stopSelf();
+            return START_NOT_STICKY;
         }
         acquireWakeLock();
 
@@ -204,9 +215,10 @@ public class AlarmRingingService extends Service {
     // -----------------------------------------------------------------------
 
     private void startAlarmSound(@Nullable String uriString, boolean fade) {
-        Uri alarmUri = (uriString == null || uriString.isEmpty())
-                ? RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                : Uri.parse(uriString);
+        Uri alarmUri = sanitizeToneUri(uriString);
+        if (alarmUri == null) {
+            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        }
         if (alarmUri == null) {
             alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         }
@@ -217,7 +229,7 @@ public class AlarmRingingService extends Service {
 
         // Сохраняем ссылку локально ДО асинхронного prepare.
         // В onPrepared проверяем, что player не был заменён stopAlarmSound() за это время.
-        MediaPlayer player = new MediaPlayer();
+        final MediaPlayer player = new MediaPlayer();
         mediaPlayer = player;
 
         player.setAudioAttributes(new AudioAttributes.Builder()
@@ -226,11 +238,19 @@ public class AlarmRingingService extends Service {
                 .build());
         player.setLooping(true);
 
+        // OnError должен освобождать конкретно этот плеер, даже если в mediaPlayer уже лежит другой
+        player.setOnErrorListener((mp, what, extra) -> {
+            try { mp.reset(); } catch (IllegalStateException ignored) {}
+            try { mp.release(); } catch (IllegalStateException ignored) {}
+            if (mp == mediaPlayer) mediaPlayer = null;
+            return true;
+        });
+
         try {
             player.setDataSource(this, alarmUri);
             player.setOnPreparedListener(mp -> {
-                // Защита от race condition: запускаем только если это актуальный плеер
-                if (mp != mediaPlayer) return;
+                // Защита от race condition: запускаем только если этот плеер всё ещё актуален
+                if (mp != mediaPlayer || mp != player) return;
                 try {
                     if (fading) {
                         mp.setVolume(MIN_VOLUME, MIN_VOLUME);
@@ -243,10 +263,44 @@ public class AlarmRingingService extends Service {
                 } catch (IllegalStateException ignored) {}
             });
             player.prepareAsync();
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException | SecurityException e) {
             if (player == mediaPlayer) mediaPlayer = null;
-            player.release();
+            try { player.release(); } catch (IllegalStateException ignored) {}
         }
+    }
+
+    /**
+     * Допускает только безопасные источники: content://, android.resource:// и file:// внутри
+     * пакета приложения. Защищает от подмены SharedPreferences (например, через adb backup)
+     * на URI с произвольной схемой (http/javascript/etc.), который мог бы быть передан в
+     * MediaPlayer.setDataSource.
+     */
+    @Nullable
+    private Uri sanitizeToneUri(@Nullable String uriString) {
+        if (uriString == null || uriString.isEmpty()) return null;
+        Uri uri;
+        try {
+            uri = Uri.parse(uriString);
+        } catch (Exception e) {
+            return null;
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null) return null;
+        return (ContentResolver.SCHEME_CONTENT.equals(scheme)
+                || ContentResolver.SCHEME_ANDROID_RESOURCE.equals(scheme)
+                || ContentResolver.SCHEME_FILE.equals(scheme))
+                ? uri : null;
+    }
+
+    /**
+     * true, если на API 33+ выдано разрешение POST_NOTIFICATIONS. На более старых версиях
+     * разрешение не требуется — возвращаем true.
+     */
+    @SuppressWarnings("unused")
+    private boolean hasNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true;
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     private void stopAlarmSound() {

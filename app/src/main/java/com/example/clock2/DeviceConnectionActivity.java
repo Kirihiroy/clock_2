@@ -98,6 +98,13 @@ public class DeviceConnectionActivity extends AppCompatActivity {
         stopScan();
     }
 
+    @Override
+    protected void onDestroy() {
+        // Снимаем все отложенные коллбеки — иначе они держат ссылку на эту Activity
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+
     // ---------- разрешения / BT ----------
 
     private boolean ensurePermissions() {

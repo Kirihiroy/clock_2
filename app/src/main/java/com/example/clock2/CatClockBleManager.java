@@ -236,13 +236,27 @@ public class CatClockBleManager {
             BluetoothDevice device = adapter.getRemoteDevice(mac);
             gatt = device.connectGatt(appCtx, false, gattCallback,
                     BluetoothDevice.TRANSPORT_LE);
+            if (gatt == null) {
+                // connectGatt() может вернуть null при нехватке ресурсов BT-стека.
+                connecting = false;
+                failPending("Не удалось открыть GATT", cb);
+            }
         } catch (IllegalArgumentException ex) {
             connecting = false;
+            closeGattQuietly();
             failPending("Некорректный MAC: " + mac, cb);
         } catch (SecurityException ex) {
             connecting = false;
+            closeGattQuietly();
             failPending(appCtx.getString(R.string.device_permission_required), cb);
         }
+    }
+
+    /** Закрывает GATT и обнуляет поле, проглатывая возможный SecurityException. */
+    private void closeGattQuietly() {
+        if (gatt == null) return;
+        try { gatt.close(); } catch (SecurityException ignored) {}
+        gatt = null;
     }
 
     private void failPending(String msg, @Nullable Callback cb) {
