@@ -31,6 +31,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner equationCountSpinner;
     private SwitchMaterial fadeInSwitch;
     private SwitchMaterial themeSwitch;
+    private SwitchMaterial ledSwitch;
     private final List<String> alarmToneUris = new ArrayList<>();
 
     private TextView deviceStatusText;
@@ -58,6 +59,7 @@ public class SettingsActivity extends AppCompatActivity {
         equationCountSpinner = findViewById(R.id.spinner_equation_count);
         fadeInSwitch = findViewById(R.id.switch_fade_in);
         themeSwitch = findViewById(R.id.switch_theme);
+        ledSwitch = findViewById(R.id.switch_led);
         Button saveButton = findViewById(R.id.btn_save_settings);
 
         deviceStatusText    = findViewById(R.id.tv_device_status);
@@ -213,6 +215,7 @@ public class SettingsActivity extends AppCompatActivity {
         equationCountSpinner.setSelection(countIndex);
 
         fadeInSwitch.setChecked(alarmPrefs.getBoolean(AlarmActivity.KEY_FADE_IN, true));
+        ledSwitch.setChecked(LedBrightness.isEnabled(this));
     }
 
     private void saveSettings() {
@@ -244,9 +247,14 @@ public class SettingsActivity extends AppCompatActivity {
                 isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
         );
 
+        LedBrightness.setEnabled(this, ledSwitch.isChecked());
+
         CatClockBleManager mgr = CatClockBleManager.get(this);
         if (mgr.hasPairedDevice()) {
+            // syncTime обновит зону + одной транзакцией доедет свежая яркость через connectAndSyncAll.
+            // Здесь шлём отдельно: пользователь мог поменять только переключатель LED.
             mgr.syncTime(null);
+            mgr.syncLed(LedBrightness.compute(this), null);
         }
 
         finish();

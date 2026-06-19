@@ -116,6 +116,8 @@
     <string name="device_ble_not_supported">BLE не поддерживается на этом устройстве</string>
     <string name="device_disconnected_message">Устройство отключено</string>
     <string name="device_unknown_name">Без имени</string>
+    <string name="led_label">Подсветка лентой</string>
+    <string name="led_hint">В светлой теме — выключена. В тёмной — яркость зависит от часа в выбранном поясе (ночью тускло, вечером ярче).</string>
 
     <string-array name="timezones">
         <item>UTC</item>

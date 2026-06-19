@@ -18,6 +18,9 @@
 static const int PIN_BUZZER     = 25;
 static const int PIN_BTN_STOP   = 32;
 static const int PIN_BTN_SNOOZE = 33;
+// Одноцветная LED-лента, через MOSFET (logic-level, например IRLZ44N).
+// 220 Ом между GPIO и Gate, 10 кОм pull-down с Gate на GND.
+static const int PIN_LED_STRIP  = 26;
 
 // ---------- BLE UUIDs ----------
 #define SERVICE_UUID      "5a0f0001-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
@@ -25,6 +28,7 @@ static const int PIN_BTN_SNOOZE = 33;
 #define CHAR_ALARMS_UUID  "5a0f0003-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
 #define CHAR_CMD_UUID     "5a0f0004-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
 #define CHAR_STATUS_UUID  "5a0f0005-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
+#define CHAR_LED_UUID     "5a0f0006-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
 
 #define DEVICE_NAME       "CatClock"
 #define FW_VERSION        "0.1"
@@ -63,6 +67,12 @@ uint8_t  ringingId      = 0;     // 0 = not ringing; otherwise alarm id (or 255 
 uint32_t ringStartedMs  = 0;
 int64_t  snoozeAtUtc    = 0;     // 0 = no snooze pending
 int16_t  lastFiredMinute = -1;   // minute-of-day of last fire, to avoid re-trigger
+
+// Подсветка лентой: целевая яркость задаётся телефоном по BLE,
+// фактическая плавно подтягивается к ней (fade ~500 мс).
+uint8_t  ledTarget       = 0;
+float    ledCurrent      = 0.0f;
+uint32_t ledLastTickMs   = 0;
 
 BLECharacteristic* pCharStatus = nullptr;
 
@@ -274,6 +284,48 @@ static void updateBuzzer() {
   if (on) buzzerOn(); else buzzerOff();
 }
 
+// ---------- LED-лента ----------
+// Отдельный LEDC-канал для PWM яркости. Частота 5 кГц, разрешение 8 бит.
+static const int LED_PWM_FREQ = 5000;
+static const int LED_PWM_RES  = 8;
+
+// Скорость fade: за 500 мс полный диапазон 0..255 (~0.5 единицы яркости за мс).
+static const float LED_FADE_PER_MS = 255.0f / 500.0f;
+
+static void ledWriteRaw(uint8_t value) {
+  ledcWrite(PIN_LED_STRIP, value);
+}
+
+static void updateLed() {
+  uint32_t now = millis();
+  uint32_t dt  = now - ledLastTickMs;
+  if (dt < 10) return;             // обновляем не чаще ~100 Гц
+  ledLastTickMs = now;
+
+  // Когда звонит будильник — переопределяем подсветку: пульс ~1 Гц на полную.
+  uint8_t target;
+  if (ringingId != 0) {
+    uint32_t t = now - ringStartedMs;
+    // треугольная волна 0..255..0 с периодом 1000 мс
+    uint32_t phase = t % 1000;
+    target = (phase < 500) ? (uint8_t)(phase * 255 / 500)
+                           : (uint8_t)((1000 - phase) * 255 / 500);
+  } else {
+    target = ledTarget;
+  }
+
+  // Плавная подтяжка ledCurrent к target
+  float step = LED_FADE_PER_MS * (float)dt;
+  if (ledCurrent < (float)target) {
+    ledCurrent += step;
+    if (ledCurrent > (float)target) ledCurrent = (float)target;
+  } else if (ledCurrent > (float)target) {
+    ledCurrent -= step;
+    if (ledCurrent < (float)target) ledCurrent = (float)target;
+  }
+  ledWriteRaw((uint8_t)ledCurrent);
+}
+
 // ---------- Alarm engine ----------
 static void notifyStatus() {
   if (!pCharStatus) return;
@@ -405,6 +457,31 @@ class CmdCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
+class LedCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* c) override {
+    String v = c->getValue();
+    if (v.length() == 0) return;
+    // Принимаем два формата: одиночный байт (0..255) или JSON {"b":N}.
+    // Это даёт совместимость с будущими расширениями (например, режим).
+    int value = -1;
+    if (v.length() == 1) {
+      value = (int)(uint8_t)v[0];
+    } else {
+      JsonDocument doc;
+      if (deserializeJson(doc, v) == DeserializationError::Ok) {
+        value = doc["b"] | -1;
+      } else {
+        // Не JSON и не один байт — пробуем как ASCII число
+        value = atoi(v.c_str());
+      }
+    }
+    if (value < 0)   value = 0;
+    if (value > 255) value = 255;
+    ledTarget = (uint8_t)value;
+    Serial.printf("[CatClock] led target=%d\n", value);
+  }
+};
+
 static void startBle() {
   BLEDevice::init(DEVICE_NAME);
   // Negotiate a large MTU so the phone can push the time/alarms JSON in a
@@ -424,6 +501,9 @@ static void startBle() {
 
   auto* cCmd = svc->createCharacteristic(CHAR_CMD_UUID, BLECharacteristic::PROPERTY_WRITE);
   cCmd->setCallbacks(new CmdCallbacks());
+
+  auto* cLed = svc->createCharacteristic(CHAR_LED_UUID, BLECharacteristic::PROPERTY_WRITE);
+  cLed->setCallbacks(new LedCallbacks());
 
   pCharStatus = svc->createCharacteristic(CHAR_STATUS_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
@@ -476,6 +556,11 @@ void setup() {
   ledcAttach(PIN_BUZZER, BEEP_HZ, LEDC_RES);
   buzzerOff();
 
+  // Отдельный PWM-канал для LED-ленты.
+  ledcAttach(PIN_LED_STRIP, LED_PWM_FREQ, LED_PWM_RES);
+  ledWriteRaw(0);
+  ledLastTickMs = millis();
+
   Serial.println("[CatClock] TFT init");
   tft.init();
   tft.setRotation(1);
@@ -516,6 +601,7 @@ void loop() {
   if (ringingId != 0 && (millis() - ringStartedMs) > 60000UL) stopRinging();
 
   updateBuzzer();
+  updateLed();
 
   uint32_t now = millis();
   if (now - lastSec >= 250) {

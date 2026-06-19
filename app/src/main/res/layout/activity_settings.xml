@@ -133,9 +133,26 @@
             android:id="@+id/btn_device_disconnect"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="8dp"
             android:text="@string/device_disconnect_button"
             android:visibility="gone" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switch_led"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/led_label"
+            android:textColor="@color/main_time_color" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="@string/led_hint"
+            android:textColor="@color/main_time_color"
+            android:textSize="12sp"
+            android:alpha="0.7" />
 
         <Button
             android:id="@+id/btn_save_settings"

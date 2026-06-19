@@ -45,6 +45,7 @@ public class CatClockBleManager {
     public static final UUID CHAR_ALARMS_UUID = UUID.fromString("5a0f0003-7e8b-4d6c-9a2f-0e2b3c4d5e6f");
     public static final UUID CHAR_CMD_UUID    = UUID.fromString("5a0f0004-7e8b-4d6c-9a2f-0e2b3c4d5e6f");
     public static final UUID CHAR_STATUS_UUID = UUID.fromString("5a0f0005-7e8b-4d6c-9a2f-0e2b3c4d5e6f");
+    public static final UUID CHAR_LED_UUID    = UUID.fromString("5a0f0006-7e8b-4d6c-9a2f-0e2b3c4d5e6f");
 
     private static final UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
@@ -154,7 +155,14 @@ public class CatClockBleManager {
 
     @MainThread
     public void connectAndSyncAll(@Nullable Callback cb) {
-        enqueue(Op.time(), Op.alarms());
+        enqueue(Op.time(), Op.alarms(), Op.led(LedBrightness.compute(appCtx)));
+        run(cb, true);
+    }
+
+    /** Шлёт устройству актуальную яркость подсветки (0..255). */
+    @MainThread
+    public void syncLed(int brightness, @Nullable Callback cb) {
+        enqueue(Op.led(brightness));
         run(cb, true);
     }
 
@@ -471,21 +479,25 @@ public class CatClockBleManager {
     // ---------- операции ----------
 
     private static final class Op {
-        enum Kind { TIME, ALARMS, COMMAND }
+        enum Kind { TIME, ALARMS, COMMAND, LED }
 
         final Kind kind;
         final UUID charUuid;
         @Nullable final String command;  // только для Kind.COMMAND
+        final int ledBrightness;         // только для Kind.LED, 0..255
 
-        private Op(Kind kind, UUID u, @Nullable String command) {
+        private Op(Kind kind, UUID u, @Nullable String command, int ledBrightness) {
             this.kind = kind;
             this.charUuid = u;
             this.command = command;
+            this.ledBrightness = ledBrightness;
         }
 
-        static Op time()                { return new Op(Kind.TIME,    CHAR_TIME_UUID,   null); }
-        static Op alarms()               { return new Op(Kind.ALARMS,  CHAR_ALARMS_UUID, null); }
-        static Op command(String cmd)    { return new Op(Kind.COMMAND, CHAR_CMD_UUID,    cmd);  }
+        static Op time()                { return new Op(Kind.TIME,    CHAR_TIME_UUID,   null, 0); }
+        static Op alarms()               { return new Op(Kind.ALARMS,  CHAR_ALARMS_UUID, null, 0); }
+        static Op command(String cmd)    { return new Op(Kind.COMMAND, CHAR_CMD_UUID,    cmd,  0); }
+        static Op led(int brightness)    { return new Op(Kind.LED,     CHAR_LED_UUID,    null,
+                                                         Math.max(0, Math.min(255, brightness))); }
 
         @Nullable
         byte[] buildPayload(Context ctx) {
@@ -493,6 +505,7 @@ public class CatClockBleManager {
                 case TIME:    return buildTimeJson(ctx).getBytes(StandardCharsets.UTF_8);
                 case ALARMS:  return buildAlarmsJson(ctx).getBytes(StandardCharsets.UTF_8);
                 case COMMAND: return (command != null ? command : "").getBytes(StandardCharsets.UTF_8);
+                case LED:     return new byte[] { (byte) ledBrightness };
                 default:      return null;
             }
         }
