@@ -51,14 +51,33 @@ public class MainActivity extends AppCompatActivity {
     private TextView mainDateText;
     private LinearLayout worldTimeList;
 
+    // Кешируем последнее отправленное значение яркости, чтобы не дёргать BLE
+    // каждую секунду — только при смене «бакета» (на границе утра/вечера/ночи).
+    private int lastSentLedBrightness = -1;
+
     private final Runnable clockTick = new Runnable() {
         @Override
         public void run() {
             updateMainClock();
             tickWorldTimeCards();
+            maybeSyncLed();
             clockHandler.postDelayed(this, 1000);
         }
     };
+
+    /**
+     * Если расчётная яркость подсветки поменялась с прошлого раза — шлём её
+     * на устройство. Это даёт автоматическую смену яркости на границах часов
+     * (например, в 18:00 включается «вечерняя» полная, в 22:00 — приглушённая).
+     */
+    private void maybeSyncLed() {
+        CatClockBleManager mgr = CatClockBleManager.get(this);
+        if (!mgr.hasPairedDevice()) return;
+        int desired = LedBrightness.compute(this);
+        if (desired == lastSentLedBrightness) return;
+        lastSentLedBrightness = desired;
+        mgr.syncLed(desired, null);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +121,10 @@ public class MainActivity extends AppCompatActivity {
         if (mgr.hasPairedDevice()) {
             mgr.syncTime(null);
         }
+        // При каждом возврате на экран — пересчитать и при необходимости
+        // прислать свежую яркость (на случай если зону или тему меняли в настройках).
+        lastSentLedBrightness = -1;
+        maybeSyncLed();
     }
 
     @Override
