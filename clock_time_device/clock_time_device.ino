@@ -15,12 +15,12 @@
 #include <vector>
 
 // ---------- Pins ----------
-static const int PIN_BUZZER     = 25;
-static const int PIN_BTN_STOP   = 32;
-static const int PIN_BTN_SNOOZE = 33;
+static const int PIN_BUZZER     = 5;
+static const int PIN_BTN_STOP   = 19;
+static const int PIN_BTN_SNOOZE = 21;
 // Одноцветная LED-лента, через MOSFET (logic-level, например IRLZ44N).
 // 220 Ом между GPIO и Gate, 10 кОм pull-down с Gate на GND.
-static const int PIN_LED_STRIP  = 26;
+static const int PIN_LED_STRIP  = 17;
 
 // ---------- BLE UUIDs ----------
 #define SERVICE_UUID      "5a0f0001-7e8b-4d6c-9a2f-0e2b3c4d5e6f"
@@ -46,7 +46,8 @@ struct Alarm {
 // prototypes at the top of the file can resolve the type.
 struct BtnState {
   int pin;
-  bool lastStable;
+  bool lastStable;   // confirmed debounced state
+  bool lastRaw;      // last raw reading (restarts debounce timer on change)
   uint32_t lastChangeMs;
 };
 
@@ -530,15 +531,24 @@ static void startBle() {
 }
 
 // ---------- Buttons ----------
-BtnState btnStop   { PIN_BTN_STOP,   true, 0 };
-BtnState btnSnooze { PIN_BTN_SNOOZE, true, 0 };
+BtnState btnStop   { PIN_BTN_STOP,   true, true, 0 };
+BtnState btnSnooze { PIN_BTN_SNOOZE, true, true, 0 };
 
 static bool buttonPressed(BtnState& b) {
   bool raw = digitalRead(b.pin);  // INPUT_PULLUP: LOW = pressed
-  if (raw != b.lastStable && (millis() - b.lastChangeMs) > 30) {
-    b.lastStable = raw;
-    b.lastChangeMs = millis();
-    if (raw == LOW) return true;  // rising-edge press
+  uint32_t now = millis();
+  // Restart debounce timer on every raw change (proper Bounce2 approach).
+  if (raw != b.lastRaw) {
+    b.lastRaw = raw;
+    b.lastChangeMs = now;
+  }
+  // Confirm stable state only after 30 ms of no change.
+  if (b.lastRaw != b.lastStable && (now - b.lastChangeMs) >= 30) {
+    b.lastStable = b.lastRaw;
+    if (b.lastStable == LOW) {
+      Serial.printf("[CatClock] btn pin=%d pressed\n", b.pin);
+      return true;
+    }
   }
   return false;
 }
@@ -561,9 +571,23 @@ void setup() {
   ledWriteRaw(0);
   ledLastTickMs = millis();
 
+  // Тест LED-ленты.
+  Serial.println("[CatClock] LED strip test: PWM fade");
+  for (int v = 0; v <= 255; v += 3) { ledWriteRaw((uint8_t)v); delay(6); }
+  for (int v = 255; v >= 0; v -= 3) { ledWriteRaw((uint8_t)v); delay(6); }
+  // Постоянный HIGH — должна гореть на 100%, легко мерить мультиметром на GPIO17.
+  Serial.println("[CatClock] LED strip test: full ON 3s (GPIO17 = HIGH)");
+  digitalWrite(PIN_LED_STRIP, HIGH);
+  delay(3000);
+  digitalWrite(PIN_LED_STRIP, LOW);
+  // Восстанавливаем LEDC для нормальной работы.
+  ledcAttach(PIN_LED_STRIP, LED_PWM_FREQ, LED_PWM_RES);
+  ledWriteRaw(0);
+  Serial.println("[CatClock] LED strip test done");
+
   Serial.println("[CatClock] TFT init");
   tft.init();
-  tft.setRotation(1);
+  tft.setRotation(3);
 
   // Smoke-test: R/G/B stripes. If you don't see them, the display/pinout is wrong.
   int w = tft.width(), h = tft.height();
